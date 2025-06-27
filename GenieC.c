@@ -2,12 +2,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <locale.h>
-#include <Windows.h>
 
 #include <curl/curl.h>
 #include <cjson/cJSON.h>
 
 #include "api_key.h"
+#include "limpar_tela.h"
+#include "dormir.h"
 
 // --- Configurações Iniciais (sem alteração) ---
 #define API_BASE_URL "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key="
@@ -30,7 +31,7 @@ int main(){
     system("chcp 65001");
 
     while (1) { // Loop infinito
-        system("cls"); // Limpa a tela do console
+        limpar_tela(); // Limpa a tela do console
         char minha_pergunta[100000]; // Buffer para armazenar a pergunta do usuário
 
         printf("Digite sua pergunta para o Gemini (ou '0' para sair): ");
@@ -83,7 +84,7 @@ int main(){
     }
 
     printf("\nFinalizando o programa...\n");
-    Sleep(2000);
+    dormir(2000);
     return 0;
 }
 
