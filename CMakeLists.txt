@@ -12,7 +12,7 @@ find_package(cJSON CONFIG REQUIRED)
 
 
 # Primeiro definimos o executável
-add_executable(PPRP teste.c)
+add_executable(PPRP GenieC.c)
 
 # Depois vinculamos as bibliotecas
 target_link_libraries(PPRP PRIVATE CURL::libcurl)
