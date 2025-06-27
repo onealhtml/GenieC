@@ -38,7 +38,7 @@ Um cliente simples em linguagem C para interagir com a API do Google Gemini AI. 
 
 ### 2. Configurar a API Key no projeto
 
-Abra o arquivo `api_key.h` e substitua a chave existente pela sua:
+Abra o arquivo `api_key.example.h`, renomeie para `api_key.h` e substitua a chave existente pela sua:
 
 ```c
 #ifndef API_KEY_H
