@@ -8,7 +8,7 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static")
 
 # O toolchain do vcpkg encontrará as versões estáticas corretas
 find_package(CURL REQUIRED)
-find_package(cJSON CONFIG REQUIRED)
+find_package(cJSON REQUIRED)
 
 
 # Primeiro definimos o executável
