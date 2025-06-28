@@ -91,9 +91,9 @@ Este projeto é para fins educacionais. Use responsavelmente e respeite os termo
 ## 👥 Créditos
 
 Este projeto foi desenvolvido por:
-- **Lorenzo Farias**
-- **Bernardo Soares Nunes**
-- **Pedro Cabral Buchaim**
+- [Lorenzo Farias](https://github.com/onealhtml)
+- [Bernardo Soares Nunes](https://github.com/besoaresn)
+- [Pedro Cabral Buchaim](https://github.com/Tinpack)
 
 **Universidade de Santa Cruz do Sul (UNISC)**  
 **Disciplina**: Programação Para Resolução de Problemas  
