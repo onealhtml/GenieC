@@ -12,6 +12,7 @@
 
 // --- Configurações Iniciais (sem alteração) ---
 #define API_BASE_URL "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key="
+#define MAX_PROMPT_SIZE 10000
 
 // --- Declaração das Funções ("Funcionários") ---
 char* criar_payload_json(const char* prompt);
@@ -32,7 +33,7 @@ int main(){
 
     while (1) { // Loop infinito
         limpar_tela(); // Limpa a tela do console
-        char minha_pergunta[100000]; // Buffer para armazenar a pergunta do usuário
+        char minha_pergunta[MAX_PROMPT_SIZE]; // Buffer para armazenar a pergunta do usuário
 
         printf("Digite sua pergunta para o Gemini (ou '0' para sair): ");
         fgets(minha_pergunta, sizeof(minha_pergunta), stdin);
