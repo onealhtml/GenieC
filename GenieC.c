@@ -47,7 +47,8 @@ int main(){
         char* payload = criar_payload_json(minha_pergunta);
         if (payload == NULL) {
             fprintf(stderr, "Erro: Não foi possível criar o pacote JSON.\n");
-            system("pause");
+            printf("Pressione Enter para continuar...\n");
+            getchar(); // Espera o usuário pressionar Enter
             continue; // Volta para o início do loop
         }
 
@@ -59,7 +60,8 @@ int main(){
         if (resposta_bruta == NULL) {
             fprintf(stderr, "Erro: A comunicação com a API falhou.\n");
             free(payload);
-            system("pause");
+            printf("Pressione Enter para continuar...\n");
+            getchar(); // Espera o usuário pressionar Enter
             continue; // Volta para o início do loop
         }
 
@@ -69,7 +71,8 @@ int main(){
             fprintf(stderr, "Resposta bruta recebida: %s\n", resposta_bruta);
             free(payload);
             free(resposta_bruta);
-            system("pause");
+            printf("Pressione Enter para continuar...\n");
+            getchar(); // Espera o usuário pressionar Enter
             continue; // Volta para o início do loop
         }
 
@@ -81,7 +84,8 @@ int main(){
         free(texto_final);
 
         printf("\n");
-        system("pause"); // Pausa para o usuário ler a resposta
+        printf("Pressione Enter para continuar...\n");
+        getchar(); // Espera o usuário pressionar Enter // Pausa para o usuário ler a resposta
     }
 
     printf("\nFinalizando o programa...\n");
