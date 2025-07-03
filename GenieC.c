@@ -10,15 +10,15 @@
 #include "limpar_tela.h"
 #include "dormir.h"
 
-// --- Configurações Iniciais (sem alteração) ---
+// --- Configurações Iniciais ---
 #define API_BASE_URL "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key="
 #define MAX_PROMPT_SIZE 10000
 
-// --- Declaração das Funções ("Funcionários") ---
+// --- Declaração das Funções ---
 char* criar_payload_json(const char* prompt);
 char* extrair_texto_da_resposta(const char* resposta_json);
 
-// --- Requisição HTTP (sem alteração) ---
+// --- Requisição HTTP ---
 struct MemoryStruct { // Estrutura para armazenar a resposta da requisição HTTP (padrão cURL)
     char *memory;
     size_t size;
@@ -94,7 +94,7 @@ int main(){
 }
 
 // ==============================================================================
-// Implementação das Funções (com as devidas alterações)
+// Funções
 // ==============================================================================
 
 // Cria o payload JSON usando a biblioteca cJSON.
@@ -205,7 +205,7 @@ char* extrair_texto_da_resposta(const char* resposta_json) {
 }
 
 
-// --- Funções do cURL (versão simplificada) ---
+// --- Funções do cURL ---
 char* fazer_requisicao_http(const char* url, const char* payload) {
     // Inicializa as variáveis necessárias
     CURL *curl_handle;                // Manipulador do cURL
