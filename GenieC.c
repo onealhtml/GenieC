@@ -11,12 +11,71 @@
 #include "dormir.h"
 
 // --- Configurações Iniciais ---
-#define API_BASE_URL "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key="
+#define MODELO_GEMINI "gemini-2.5-flash-lite-preview-06-17" // Nome do modelo Gemini
+#define API_BASE_URL "https://generativelanguage.googleapis.com/v1beta/models/" MODELO_GEMINI ":generateContent?key="
 #define MAX_PROMPT_SIZE 10000
+#define MAX_HISTORY_SIZE 50  // Máximo de turnos no histórico
 
+// --- Estrutura para armazenar o histórico da conversa ---
+typedef struct {
+    char* role;     // "user" ou "model"
+    char* text;     // Conteúdo da mensagem
+} MessageTurn;
+
+typedef struct {
+    MessageTurn* turns;  // Array de turnos da conversa
+    int count;           // Número atual de turnos
+    int capacity;        // Capacidade máxima
+} ChatHistory;
+
+// --- Prompt Base do Sistema ---
+#define SYSTEM_PROMPT "Você é o GenieC, um assistente pessoal para responder dúvidas do dia a dia. Siga estas diretrizes:\n\n" \
+"COMUNICAÇÃO:\n" \
+"- Responda de forma clara, precisa e educada\n" \
+"- Seja conciso mas completo - evite respostas muito longas, no maximo um parágrafo de texto\n" \
+"- Use linguagem natural e acessível\n" \
+"- Se não souber algo, admita honestamente\n\n" \
+"PESQUISA E CONTEXTO:\n" \
+"- Use ferramentas de pesquisa quando necessário para informações atualizadas\n" \
+"- Para perguntas sobre temperatura, clima, horários, eventos locais ou informações específicas de localização, SEMPRE pergunte a cidade/região antes de responder\n" \
+"- Para perguntas ambíguas, peça esclarecimentos específicos\n\n" \
+"IMPORTANTE:\n" \
+"- Quando precisar de localização ou contexto adicional, peça ao usuário para reformular a pergunta com essas informações\n" \
+"- Forneça respostas práticas e úteis sempre que possível"
+
+void menu() {
+
+    printf("                                 ,--.\n");
+    printf("  ,----..        ,---,.        ,--.'|    ,---,     ,---,.   ,----..\n");
+    printf(" /   /   \\     ,'  .' |    ,--,:  : | ,`--.' |   ,'  .' |  /   /   \\\n");
+    printf("|   :     :  ,---.'   | ,`--.'`|  ' : |   :  : ,---.'   | |   :     :\n");
+    printf(".   |  ;. /  |   |   .' |   :  :  | | :   |  ' |   |   .' .   |  ;. /\n");
+    printf(".   ; /--`   :   :  |-, :   |   \\ | : |   :  | :   :  |-, .   ; /--`\n");
+    printf(";   | ;  __  :   |  ;/| |   : '  '; | '   '  ; :   |  ;/| ;   | ;\n");
+    printf("|   : |.' .' |   :   .' '   ' ;.    ; |   |  | |   :   .' |   : |\n");
+    printf(".   | '_.' : |   |  |-, |   | | \\   | '   :  ; |   |  |-, .   | '___\n");
+    printf("'   ; : \\  | '   :  ;/| '   : |  ; .' |   |  ' '   :  ;/| '   ; : .'|\n");
+    printf("'   | '/  .' |   |    \\ |   | '`--'   '   :  | |   |    \\ '   | '/  :\n");
+    printf("|   :    /   |   :   .' '   : |       ;   |.'  |   :   .' |   :    /\n");
+    printf(" \\   \\ .'    |   | ,'   ;   |.'       '---'    |   | ,'    \\   \\ .'\n");
+    printf("  `---`      `----'     '---'                  `----'       `---`\n\n");
+
+    printf("Bem-vindo ao GenieC - Assistente Inteligente Gemini!\n");
+    printf("Digite sua pergunta ou comando:\n");
+    printf("1. Pergunte algo ao assistente\n");
+    printf("2. Digite 'limpar' para limpar o histórico\n");
+    printf("3. Digite 'historico' para ver o histórico da conversa\n");
+    printf("4. Digite '0' para sair do programa\n\n");
+}
 // --- Declaração das Funções ---
-char* criar_payload_json(const char* prompt);
+char* criar_payload_json_com_historico(const char* prompt, ChatHistory* history);
 char* extrair_texto_da_resposta(const char* resposta_json);
+
+// --- Funções de Histórico do Chat ---
+ChatHistory* inicializar_chat_history();
+void adicionar_turno(ChatHistory* history, const char* role, const char* text);
+void liberar_chat_history(ChatHistory* history);
+void exibir_historico(ChatHistory* history);
 
 // --- Requisição HTTP ---
 struct MemoryStruct { // Estrutura para armazenar a resposta da requisição HTTP (padrão cURL)
@@ -30,12 +89,20 @@ char* fazer_requisicao_http(const char* url, const char* payload); // Função q
 int main(){
     setlocale(LC_ALL, "Portuguese_Brazil.utf8");
     system("chcp 65001");
+    limpar_tela(); // Limpa a tela ao iniciar
+
+    menu();
+
+    // Inicializa o histórico do chat
+    ChatHistory* chat_history = inicializar_chat_history();
+    if (chat_history == NULL) {
+        fprintf(stderr, "Erro ao inicializar o histórico do chat.\n");
+        return 1;
+    }
 
     while (1) { // Loop infinito
-        limpar_tela(); // Limpa a tela do console
         char minha_pergunta[MAX_PROMPT_SIZE]; // Buffer para armazenar a pergunta do usuário
-
-        printf("Digite sua pergunta para o Gemini (ou '0' para sair): ");
+        printf("Você: ");
         fgets(minha_pergunta, sizeof(minha_pergunta), stdin);
         minha_pergunta[strcspn(minha_pergunta, "\n")] = 0;
 
@@ -44,11 +111,28 @@ int main(){
             break;
         }
 
-        char* payload = criar_payload_json(minha_pergunta);
+        // Comando para limpar histórico
+        if (strcmp(minha_pergunta, "limpar") == 0) {
+            limpar_tela();
+            liberar_chat_history(chat_history);
+            chat_history = inicializar_chat_history();
+            menu();
+            printf("Histórico limpo! Nova conversa iniciada.\n\n");
+            continue;
+        }
+
+        // Comando para exibir histórico
+        if (strcmp(minha_pergunta, "historico") == 0) {
+            exibir_historico(chat_history);
+            continue;
+        }
+
+        // Adiciona a pergunta do usuário ao histórico
+        adicionar_turno(chat_history, "user", minha_pergunta);
+
+        char* payload = criar_payload_json_com_historico(minha_pergunta, chat_history);
         if (payload == NULL) {
             fprintf(stderr, "Erro: Não foi possível criar o pacote JSON.\n");
-            printf("Pressione Enter para continuar...\n");
-            getchar(); // Espera o usuário pressionar Enter
             continue; // Volta para o início do loop
         }
 
@@ -60,33 +144,31 @@ int main(){
         if (resposta_bruta == NULL) {
             fprintf(stderr, "Erro: A comunicação com a API falhou.\n");
             free(payload);
-            printf("Pressione Enter para continuar...\n");
-            getchar(); // Espera o usuário pressionar Enter
             continue; // Volta para o início do loop
         }
 
         char* texto_final = extrair_texto_da_resposta(resposta_bruta);
-         if (texto_final == NULL) {
+        if (texto_final == NULL) {
             fprintf(stderr, "Erro: Não foi possível extrair o texto da resposta da API.\n");
             fprintf(stderr, "Resposta bruta recebida: %s\n", resposta_bruta);
             free(payload);
             free(resposta_bruta);
-            printf("Pressione Enter para continuar...\n");
-            getchar(); // Espera o usuário pressionar Enter
             continue; // Volta para o início do loop
         }
 
-        printf("\n--- Resposta do Gemini ---\n%s\n", texto_final);
+        printf("GenieC: %s\n\n", texto_final);
+
+        // Adiciona a resposta do Gemini ao histórico
+        adicionar_turno(chat_history, "model", texto_final);
 
         // Libera a memória alocada dentro do loop
         free(payload);
         free(resposta_bruta);
         free(texto_final);
-
-        printf("\n");
-        printf("Pressione Enter para continuar...\n");
-        getchar(); // Espera o usuário pressionar Enter // Pausa para o usuário ler a resposta
     }
+
+    // Libera o histórico antes de sair
+    liberar_chat_history(chat_history);
 
     printf("\nFinalizando o programa...\n");
     dormir(2000);
@@ -98,35 +180,80 @@ int main(){
 // ==============================================================================
 
 // Cria o payload JSON usando a biblioteca cJSON.
-char* criar_payload_json(const char* prompt) {
+char* criar_payload_json_com_historico(const char* prompt, ChatHistory* history) {
     // Passo 1: Criamos os objetos necessários para construir o JSON
     cJSON *root = cJSON_CreateObject();           // Objeto principal/raiz
-    cJSON *contents_array = cJSON_CreateArray();  // Array de conteúdos
-    cJSON *content_item = cJSON_CreateObject();   // Item de conteúdo
-    cJSON *parts_array = cJSON_CreateArray();     // Array de partes
-    cJSON *part_item = cJSON_CreateObject();      // Item de parte
 
-    // Passo 2: Configuramos o texto da pergunta
-    // Adiciona uma string ao objeto "part_item" com a chave "text"
-    cJSON_AddItemToObject(part_item, "text", cJSON_CreateString(prompt));
+    // Passo 2: Criamos o system_instruction
+    cJSON *system_instruction = cJSON_CreateObject();
+    cJSON *system_parts = cJSON_CreateArray();
+    cJSON *system_part = cJSON_CreateObject();
 
-    // Passo 3: Construímos a estrutura do JSON de dentro para fora
-    // Primeiro adicionamos o objeto part_item ao array parts_array
-    cJSON_AddItemToArray(parts_array, part_item);
+    // Adicionamos o prompt do sistema
+    cJSON_AddItemToObject(system_part, "text", cJSON_CreateString(SYSTEM_PROMPT));
+    cJSON_AddItemToArray(system_parts, system_part);
+    cJSON_AddItemToObject(system_instruction, "parts", system_parts);
 
-    // Depois adicionamos o array parts_array ao objeto content_item com a chave "parts"
-    cJSON_AddItemToObject(content_item, "parts", parts_array);
+    // Adicionamos o system_instruction ao objeto root
+    cJSON_AddItemToObject(root, "system_instruction", system_instruction);
 
-    // Em seguida adicionamos o objeto content_item ao array contents_array
-    cJSON_AddItemToArray(contents_array, content_item);
+    // Passo 3: Criamos o array contents com todo o histórico
+    cJSON *contents_array = cJSON_CreateArray();
 
-    // Por fim, adicionamos o array contents_array ao objeto root com a chave "contents"
+    // Se existe histórico, adiciona todos os turnos exceto o último (que é a pergunta atual)
+    if (history != NULL && history->count > 1) {
+        for (int i = 0; i < history->count - 1; i++) {
+            cJSON *content_item = cJSON_CreateObject();
+            cJSON *parts_array = cJSON_CreateArray();
+            cJSON *part_item = cJSON_CreateObject();
+
+            // Adiciona o texto do turno
+            cJSON_AddItemToObject(part_item, "text", cJSON_CreateString(history->turns[i].text));
+            cJSON_AddItemToArray(parts_array, part_item);
+            cJSON_AddItemToObject(content_item, "parts", parts_array);
+            cJSON_AddItemToObject(content_item, "role", cJSON_CreateString(history->turns[i].role));
+
+            cJSON_AddItemToArray(contents_array, content_item);
+        }
+    }
+
+    // Adiciona a pergunta atual do usuário
+    cJSON *user_content = cJSON_CreateObject();
+    cJSON *user_parts = cJSON_CreateArray();
+    cJSON *user_part = cJSON_CreateObject();
+
+    cJSON_AddItemToObject(user_part, "text", cJSON_CreateString(prompt));
+    cJSON_AddItemToArray(user_parts, user_part);
+    cJSON_AddItemToObject(user_content, "parts", user_parts);
+    cJSON_AddItemToObject(user_content, "role", cJSON_CreateString("user"));
+    cJSON_AddItemToArray(contents_array, user_content);
+
+    // Passo 4: Adicionamos o array contents_array ao objeto root
     cJSON_AddItemToObject(root, "contents", contents_array);
 
-    // Passo 4: Convertemos o objeto JSON para uma string
+    // Passo 5: Adicionamos o Google Search tools
+    // Criamos o array de tools
+    cJSON *tools_array = cJSON_CreateArray();
+
+    // Criamos o objeto tool
+    cJSON *tool_item = cJSON_CreateObject();
+
+    // Criamos o objeto google_search vazio
+    cJSON *google_search = cJSON_CreateObject();
+
+    // Adicionamos o google_search ao tool_item
+    cJSON_AddItemToObject(tool_item, "google_search", google_search);
+
+    // Adicionamos o tool_item ao array de tools
+    cJSON_AddItemToArray(tools_array, tool_item);
+
+    // Adicionamos o array de tools ao objeto root
+    cJSON_AddItemToObject(root, "tools", tools_array);
+
+    // Passo 6: Convertemos o objeto JSON para uma string
     char *json_string_copy = cJSON_PrintUnformatted(root);
 
-    // Passo 5: Liberamos a memória do objeto JSON
+    // Passo 7: Liberamos a memória do objeto JSON
     cJSON_Delete(root);
 
     // Retornamos a string JSON que foi criada
@@ -289,4 +416,65 @@ static size_t WriteMemoryCallback(void *contents, size_t size, size_t nmemb, voi
 
     // Retorna o tamanho real para informar que a operação foi bem-sucedida
     return realsize;
+}
+
+// Funções de Histórico do Chat
+ChatHistory* inicializar_chat_history() {
+    // Aloca memória para o histórico do chat
+    ChatHistory* history = (ChatHistory*)malloc(sizeof(ChatHistory));
+    if (history == NULL) {
+        fprintf(stderr, "Erro ao alocar memória para o histórico do chat.\n");
+        return NULL;
+    }
+
+    // Inicializa os campos do histórico
+    history->turns = NULL;
+    history->count = 0;
+    history->capacity = 0;
+
+    return history;
+}
+
+void adicionar_turno(ChatHistory* history, const char* role, const char* text) {
+    // Verifica se o histórico precisa ser expandido
+    if (history->count >= history->capacity) {
+        // Aumenta a capacidade do histórico
+        int nova_capacidade = (history->capacity == 0) ? 2 : history->capacity * 2;
+        MessageTurn* novos_turnos = (MessageTurn*)realloc(history->turns, nova_capacidade * sizeof(MessageTurn));
+        if (novos_turnos == NULL) {
+            fprintf(stderr, "Erro ao alocar memória para os turnos do histórico.\n");
+            return;
+        }
+        history->turns = novos_turnos;
+        history->capacity = nova_capacidade;
+    }
+
+    // Adiciona o novo turno ao histórico
+    MessageTurn* turno_atual = &history->turns[history->count++];
+    turno_atual->role = strdup(role);
+    turno_atual->text = strdup(text);
+}
+
+void liberar_chat_history(ChatHistory* history) {
+    if (history != NULL) {
+        // Libera a memória de cada turno
+        for (int i = 0; i < history->count; i++) {
+            free(history->turns[i].role);
+            free(history->turns[i].text);
+        }
+        // Libera a memória do array de turnos
+        free(history->turns);
+        // Libera a memória do histórico em si
+        free(history);
+    }
+}
+
+void exibir_historico(ChatHistory* history) {
+    if (history != NULL && history->count > 0) {
+        printf("\n--- Histórico da Conversa ---\n");
+        for (int i = 0; i < history->count; i++) {
+            printf("%s: %s\n", history->turns[i].role, history->turns[i].text);
+        }
+        printf("-----------------------------\n");
+    }
 }
