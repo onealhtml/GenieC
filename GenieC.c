@@ -38,7 +38,7 @@ typedef struct {
 "- Se não souber algo, admita honestamente\n\n" \
 "PESQUISA E CONTEXTO:\n" \
 "- Use ferramentas de pesquisa quando necessário para informações atualizadas\n" \
-"- Para perguntas sobre temperatura, clima, horários, eventos locais ou informações específicas de localização, SEMPRE pergunte a cidade/região antes de responder quando o usuário não falar a localidaden" \
+"- Para perguntas sobre temperatura, clima, horários, eventos locais ou informações específicas de localização, SEMPRE pergunte a cidade/região antes de responder quando o usuário não falar a localidade\n" \
 "- Para perguntas ambíguas, peça esclarecimentos específicos\n\n" \
 "IMPORTANTE:\n" \
 "- Quando precisar de localização ou contexto adicional, peça ao usuário para reformular a pergunta com essas informações\n" \
