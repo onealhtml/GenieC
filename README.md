@@ -1,4 +1,4 @@
-# GenieC - Cliente Gemini AI em C
+<h1 align="center">GenieC - Cliente Gemini AI em C</h1>
 
 Um cliente simples em linguagem C para interagir com a API do Google Gemini AI. Este projeto permite fazer perguntas aos modelos Gemini através de uma interface de linha de comando.
 
