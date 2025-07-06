@@ -366,6 +366,9 @@ char* fazer_requisicao_http(const char* url, const char* payload) {
     curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, WriteMemoryCallback); // Define a função de callback
     curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, (void *)&chunk);          // Define onde salvar os dados
 
+    // Executa o Loading
+    mostrar_loading();
+    
     // Executa a requisição
     res = curl_easy_perform(curl_handle);
 
@@ -388,6 +391,17 @@ char* fazer_requisicao_http(const char* url, const char* payload) {
     return chunk.memory;
 }
 
+void mostrar_loading() {
+    int dots = 0;
+    for (int i = 0; i < 6; i++) {  // 6 vezes de 0.5s = 3 segundos
+        printf("\rConsultando IA%s", (dots % 4 == 0 ? "   " : dots % 4 == 1 ? "." : dots % 4 == 2 ? ".." : "..."));
+        fflush(stdout);
+        dots++;
+        usleep(500000);  // espera 0.5 segundos
+    }
+    printf("\rProcessando resposta...\n");
+    fflush(stdout);
+}
 static size_t WriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp) {
     // Calcula o tamanho real dos dados recebidos
     size_t realsize = size * nmemb;
