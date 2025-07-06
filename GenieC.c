@@ -77,6 +77,7 @@ ChatHistory* inicializar_chat_history();
 void adicionar_turno(ChatHistory* history, const char* role, const char* text);
 void liberar_chat_history(ChatHistory* history);
 void exibir_historico(ChatHistory* history);
+void mostrar_loading();
 
 // --- Requisição HTTP ---
 struct MemoryStruct { // Estrutura para armazenar a resposta da requisição HTTP (padrão cURL)
@@ -108,9 +109,8 @@ int main(){
         minha_pergunta[strcspn(minha_pergunta, "\n")] = 0;
 
         // Condição de saída
-        if (strcmp(minha_pergunta, "0") == 0) {
+        if (strcmp(minha_pergunta, "0") == 0)
             break;
-        }
 
         // Comando para limpar histórico
         if (strcmp(minha_pergunta, "limpar") == 0) {
@@ -397,7 +397,7 @@ void mostrar_loading() {
         printf("\rConsultando IA%s", (dots % 4 == 0 ? "   " : dots % 4 == 1 ? "." : dots % 4 == 2 ? ".." : "..."));
         fflush(stdout);
         dots++;
-        usleep(500000);  // espera 0.5 segundos
+        dormir(500);  // espera 0.5 segundos
     }
     printf("\rProcessando resposta...\n");
     fflush(stdout);
