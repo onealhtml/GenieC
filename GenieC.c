@@ -611,9 +611,9 @@ void adicionar_turno(ChatHistory* history, const char* role, const char* text) {
     turno_atual->text = strdup(text);                             // Duplica a string do texto do turno
 }
 
+// Função para limpar o histórico do chat
 void liberar_chat_history(ChatHistory* history) {
-    if (history != NULL) {
-        // Libera a memória de cada turno
+    if (history != NULL) { // Verifica se o histórico não é nulo
         for (int i = 0; i < history->count; i++) { // Percorre todos os turnos
             free(history->turns[i].role);          // Libera a memória do papel (role) do turno
             free(history->turns[i].text);          // Libera a memória do texto do turno
@@ -625,6 +625,7 @@ void liberar_chat_history(ChatHistory* history) {
     }
 }
 
+// Função para exibir o histórico da conversa
 void exibir_historico(ChatHistory* history) {
     if (history != NULL && history->count > 0) {                                // Verifica se o histórico não é nulo e tem turnos
         printf("\n----- Histórico da Conversa -----\n");

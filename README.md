@@ -102,8 +102,8 @@ Abra o arquivo `api_key.example.h`, renomeie para `api_key.h` e configure ambas 
 
 🌤️ Clima atual em São Paulo: 22.5°C - parcialmente nublado
 
-Você: Qual é a previsão do tempo para amanhã?
-GenieC: Com base nas informações atuais, amanhã em São Paulo a temperatura deve variar entre 19°C e 25°C, com possibilidade de chuva no período da tarde...
+Você: Quem é o atual Papa?
+GenieC: O atual Papa da Igreja Católica é Leão XIV. Ele foi eleito em 8 de maio de 2025, sucedendo o Papa Francisco.
 
 Você: 0
 Finalizando o programa...
@@ -184,8 +184,3 @@ Este projeto foi desenvolvido por:
 ## ⚠️ Aviso Legal
 
 Este projeto utiliza as APIs do Google Gemini e OpenWeather. Certifique-se de cumprir os termos de uso de ambas as APIs e use-as de forma responsável. Os autores não se responsabilizam pelo uso inadequado das APIs ou por possíveis custos decorrentes do uso excessivo.
-
-### Limites de Uso
-- **Google Gemini**: Verifique os limites de quota da sua conta
-- **OpenWeather**: Plano gratuito permite 1000 chamadas/mês
-- Monitore seu uso para evitar custos inesperados
