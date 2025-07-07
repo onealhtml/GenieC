@@ -1,3 +1,11 @@
+/* GenieC - Assistente Inteligente
+ * Lorenzo Farias, Bernardo Soares Nunes e Pedro Cabral Buchaim
+ * Projeto de Programação para Resolução de Problemas
+ * Programação para Resolução de Problemas
+ * Profa. Dra. Daniela Bagatini
+ * Universidade de Santa Cruz do Sul (UNISC).
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -11,10 +19,19 @@
 #include "dormir.h"
 
 // --- Configurações Iniciais ---
-#define MODELO_GEMINI "gemini-2.5-flash-lite-preview-06-17" // Nome do modelo Gemini
-#define API_BASE_URL "https://generativelanguage.googleapis.com/v1beta/models/" MODELO_GEMINI ":generateContent?key="
-#define MAX_PROMPT_SIZE 10000
-#define MAX_HISTORY_SIZE 50  // Máximo de turnos no histórico
+#define MODELO_GEMINI "gemini-2.5-flash" // Nome do modelo Gemini
+#define API_BASE_URL "https://generativelanguage.googleapis.com/v1beta/models/" MODELO_GEMINI ":generateContent?key=" //
+#define MAX_PROMPT_SIZE 10000 // Tamanho máximo do prompt
+#define MAX_HISTORY_SIZE 50   // Máximo de turnos no histórico
+#define MAX_CITY_NAME 100     // Tamanho máximo do nome da cidade
+
+// --- Estrutura para dados do clima ---
+typedef struct {
+    char city[MAX_CITY_NAME]; // Nome da cidade
+    float temperature;        // Temperatura em Celsius
+    char description[100];    // Descrição do clima (ex: "ensolarado", "chuva")
+    int valid;                // Flag para indicar se os dados são válidos
+} WeatherData;
 
 // --- Estrutura para armazenar o histórico da conversa ---
 typedef struct {
@@ -38,42 +55,25 @@ typedef struct {
 "- Se não souber algo, admita honestamente\n\n" \
 "PESQUISA E CONTEXTO:\n" \
 "- Use ferramentas de pesquisa quando necessário para informações atualizadas\n" \
-"- Para perguntas sobre temperatura, clima, horários, eventos locais ou informações específicas de localização, SEMPRE pergunte a cidade/região antes de responder quando o usuário não falar a localidade\n" \
+"- Leve em conta o Brasil quando perguntarem sobre horários e coisas afins\n" \
+"- Para perguntas sobre temperatura, clima, horários, eventos locais ou informações específicas de localização, pergunte a cidade/região antes de responder, mas somente quando o usuário não falar a localidade\n" \
 "- Para perguntas ambíguas, peça esclarecimentos específicos\n\n" \
 "IMPORTANTE:\n" \
 "- Quando precisar de localização ou contexto adicional, peça ao usuário para reformular a pergunta com essas informações\n" \
 "- Forneça respostas práticas e úteis sempre que possível"
 
-void menu() {
 
-    printf("                                 ,--.\n");
-    printf("  ,----..        ,---,.        ,--.'|    ,---,     ,---,.   ,----..\n");
-    printf(" /   /   \\     ,'  .' |    ,--,:  : | ,`--.' |   ,'  .' |  /   /   \\\n");
-    printf("|   :     :  ,---.'   | ,`--.'`|  ' : |   :  : ,---.'   | |   :     :\n");
-    printf(".   |  ;. /  |   |   .' |   :  :  | | :   |  ' |   |   .' .   |  ;. /\n");
-    printf(".   ; /--`   :   :  |-, :   |   \\ | : |   :  | :   :  |-, .   ; /--`\n");
-    printf(";   | ;  __  :   |  ;/| |   : '  '; | '   '  ; :   |  ;/| ;   | ;\n");
-    printf("|   : |.' .' |   :   .' '   ' ;.    ; |   |  | |   :   .' |   : |\n");
-    printf(".   | '_.' : |   |  |-, |   | | \\   | '   :  ; |   |  |-, .   | '___\n");
-    printf("'   ; : \\  | '   :  ;/| '   : |  ; .' |   |  ' '   :  ;/| '   ; : .'|\n");
-    printf("'   | '/  .' |   |    \\ |   | '`--'   '   :  | |   |    \\ '   | '/  :\n");
-    printf("|   :    /   |   :   .' '   : |       ;   |.'  |   :   .' |   :    /\n");
-    printf(" \\   \\ .'    |   | ,'   ;   |.'       '---'    |   | ,'    \\   \\ .'\n");
-    printf("  `---`      `----'     '---'                  `----'       `---`\n\n");
-
-    printf("Bem-vindo ao GenieC - Assistente Inteligente Gemini!\n");
-    printf("Digite sua pergunta ou comando:\n");
-    printf("1. Pergunte algo ao assistente\n");
-    printf("2. Digite 'limpar' para limpar o histórico\n");
-    printf("3. Digite 'historico' para ver o histórico da conversa\n");
-    printf("4. Digite '0' para sair do programa\n\n");
-}
 // --- Declaração das Funções ---
+void mostrar_arte_inicial();
+WeatherData obter_dados_clima(const char* cidade);
+char* url_encode(const char* str);
+void menu_com_clima(WeatherData weather);
+void mostrar_ajuda();
 char* criar_payload_json_com_historico(const char* prompt, ChatHistory* history);
 char* extrair_texto_da_resposta(const char* resposta_json);
 
 // --- Funções de Histórico do Chat ---
-ChatHistory* inicializar_chat_history();
+ChatHistory* inicializar_chat_historico();
 void adicionar_turno(ChatHistory* history, const char* role, const char* text);
 void liberar_chat_history(ChatHistory* history);
 void exibir_historico(ChatHistory* history);
@@ -93,11 +93,25 @@ int main(){
     system("chcp 65001");
     limpar_tela(); // Limpa a tela ao iniciar
 
-    menu();
+    // Mostra a arte ASCII inicial
+    mostrar_arte_inicial();
+
+    // Solicita a cidade do usuário
+    char cidade[MAX_CITY_NAME];
+    printf("\n\033[1;36m🌍 Digite o nome da sua cidade para obter informações do clima:\033[0m ");
+    fgets(cidade, sizeof(cidade), stdin);
+    cidade[strcspn(cidade, "\n")] = 0; // Remove quebra de linha
+
+    // Obtém dados do clima
+    printf("\n\033[33m🌤️ Obtendo informações do clima...\033[0m\n");
+    WeatherData clima = obter_dados_clima(cidade);
+
+    limpar_tela();
+    menu_com_clima(clima);
 
     // Inicializa o histórico do chat
-    ChatHistory* chat_history = inicializar_chat_history();
-    if (chat_history == NULL) {
+    ChatHistory* chat_historico = inicializar_chat_historico();
+    if (chat_historico == NULL) {
         fprintf(stderr, "Erro ao inicializar o histórico do chat.\n");
         return 1;
     }
@@ -115,23 +129,29 @@ int main(){
         // Comando para limpar histórico
         if (strcmp(minha_pergunta, "limpar") == 0) {
             limpar_tela();
-            liberar_chat_history(chat_history);
-            chat_history = inicializar_chat_history();
-            menu();
+            liberar_chat_history(chat_historico);
+            chat_historico = inicializar_chat_historico();
+            menu_com_clima(clima);
             printf("Histórico limpo! Nova conversa iniciada.\n\n");
             continue;
         }
 
         // Comando para exibir histórico
         if (strcmp(minha_pergunta, "historico") == 0) {
-            exibir_historico(chat_history);
+            exibir_historico(chat_historico);
+            continue;
+        }
+
+        // Comando para mostrar ajuda
+        if (strcmp(minha_pergunta, "help") == 0) {
+            mostrar_ajuda();
             continue;
         }
 
         // Adiciona a pergunta do usuário ao histórico
-        adicionar_turno(chat_history, "user", minha_pergunta);
+        adicionar_turno(chat_historico, "user", minha_pergunta);
 
-        char* payload = criar_payload_json_com_historico(minha_pergunta, chat_history);
+        char* payload = criar_payload_json_com_historico(minha_pergunta, chat_historico);
         if (payload == NULL) {
             fprintf(stderr, "Erro: Não foi possível criar o pacote JSON.\n");
             continue; // Volta para o início do loop
@@ -157,10 +177,11 @@ int main(){
             continue; // Volta para o início do loop
         }
 
-        printf("GenieC: %s\n\n", texto_final);
+        printf("\r                         \r"); // Limpa a linha atual
+        printf("\nGenieC: %s\n\n", texto_final);
 
         // Adiciona a resposta do Gemini ao histórico
-        adicionar_turno(chat_history, "model", texto_final);
+        adicionar_turno(chat_historico, "model", texto_final);
 
         // Libera a memória alocada dentro do loop
         free(payload);
@@ -169,7 +190,7 @@ int main(){
     }
 
     // Libera o histórico antes de sair
-    liberar_chat_history(chat_history);
+    liberar_chat_history(chat_historico);
 
     printf("\nFinalizando o programa...\n");
     dormir(2000);
@@ -179,6 +200,130 @@ int main(){
 // ==============================================================================
 // Funções
 // ==============================================================================
+
+// Função para mostrar a arte ASCII inicial
+void mostrar_arte_inicial() {
+    printf("\033[36m"); // Cyan para o título ASCII
+    printf("╔═════════════════════════════════════════════════════════════════════════════╗\n");
+    printf("║                                                                             ║\n");
+    printf("║                ██████╗ ███████╗███╗   ██╗██╗███████╗ ██████╗                ║\n");
+    printf("║               ██╔════╝ ██╔════╝████╗  ██║██║██╔════╝██╔════╝                ║\n");
+    printf("║               ██║  ███╗█████╗  ██╔██╗ ██║██║█████╗  ██║                     ║\n");
+    printf("║               ██║   ██║██╔══╝  ██║╚██╗██║██║██╔══╝  ██║                     ║\n");
+    printf("║               ╚██████╔╝███████╗██║ ╚████║██║███████╗╚██████╗                ║\n");
+    printf("║                ╚═════╝ ╚══════╝╚═╝  ╚═══╝╚═╝╚══════╝ ╚═════╝                ║\n");
+    printf("║                                                                             ║\n");
+    printf("╚═════════════════════════════════════════════════════════════════════════════╝\n");
+    printf("\033[0m"); // Reset cor
+
+    printf("\n");
+    printf("\033[1;32m"); // Verde bold para o título
+    printf("🤖 Bem-vindo ao GenieC - Seu Assistente Inteligente Gemini! 🤖\n");
+    printf("\033[0m"); // Reset cor
+}
+
+// Função para exibir o menu com informações do clima
+void menu_com_clima(WeatherData weather) {
+    printf("\033[36m"); // Cyan para o título ASCII
+    printf("╔═════════════════════════════════════════════════════════════════════════════╗\n");
+    printf("║                                                                             ║\n");
+    printf("║                ██████╗ ███████╗███╗   ██╗██╗███████╗ ██████╗                ║\n");
+    printf("║               ██╔════╝ ██╔════╝████╗  ██║██║██╔════╝██╔════╝                ║\n");
+    printf("║               ██║  ███╗█████╗  ██╔██╗ ██║██║█████╗  ██║                     ║\n");
+    printf("║               ██║   ██║██╔══╝  ██║╚██╗██║██║██╔══╝  ██║                     ║\n");
+    printf("║               ╚██████╔╝███████╗██║ ╚████║██║███████╗╚██████╗                ║\n");
+    printf("║                ╚═════╝ ╚══════╝╚═╝  ╚═══╝╚═╝╚══════╝ ╚═════╝                ║\n");
+    printf("║                                                                             ║\n");
+    printf("╚═════════════════════════════════════════════════════════════════════════════╝\n");
+    printf("\033[0m"); // Reset cor
+
+    printf("\n");
+    printf("\033[1;32m"); // Verde bold para o título
+    printf("🤖 Bem-vindo ao GenieC - Seu Assistente Inteligente Gemini! 🤖\n");
+    printf("\033[0m"); // Reset cor
+
+    // Exibe informações do clima
+    if(weather.valid) {
+        printf("\n");
+        printf("\033[1;34m"); // Azul bold para clima
+        printf("🌤️  Clima atual em %s: %.1f°C - %s\n", weather.city, weather.temperature, weather.description);
+        printf("\033[0m"); // Reset cor
+    } else {
+        printf("\n");
+        printf("\033[1;31m"); // Vermelho para erro
+        printf("❌ Não foi possível obter informações do clima\n");
+        printf("\033[0m"); // Reset cor
+    }
+
+    printf("\n");
+    printf("\033[33m"); // Amarelo para as opções
+    printf("┌─────────────────────────────────────────────────────────────────────────────┐\n");
+    printf("│                              📋 MENU PRINCIPAL                              │\n");
+    printf("├─────────────────────────────────────────────────────────────────────────────┤\n");
+    printf("│                                                                             │\n");
+    printf("│  \033[1;37m💬 Faça uma pergunta:\033[0m\033[33m                                                      │\n");
+    printf("│     Digite sua pergunta diretamente e pressione Enter                       │\n");
+    printf("│                                                                             │\n");
+    printf("│  \033[1;37m🧹 Comandos especiais:\033[0m\033[33m                                                     │\n");
+    printf("│     🔸 \033[1;36mlimpar\033[0m\033[33m     - Limpa o histórico da conversa                           │\n");
+    printf("│     🔸 \033[1;36mhistorico\033[0m\033[33m  - Mostra o histórico completo                             │\n");
+    printf("│     🔸 \033[1;36mhelp\033[0m\033[33m       - Mostra ajuda e dicas                                    │\n");
+    printf("│     🔸 \033[1;31m0\033[0m\033[33m          - Sair do programa                                        │\n");
+    printf("│                                                                             │\n");
+    printf("└─────────────────────────────────────────────────────────────────────────────┘\n");
+    printf("\033[0m"); // Reset cor
+
+    printf("\n");
+    printf("\033[32m"); // Verde para dicas
+    printf("💡 \033[1mDicas:\033[0m\033[32m Seja específico em suas perguntas para obter melhores respostas!\n");
+    printf("🌟 \033[1mExemplo:\033[0m\033[32m \"Qual é a previsão do tempo para São Paulo hoje?\"\n");
+    printf("\033[0m"); // Reset cor
+
+    printf("\n");
+}
+
+// Função para exibir ajuda e dicas
+void mostrar_ajuda() {
+    printf("\n");
+    printf("\033[1;36m"); // Cyan bold
+    printf("╔═══════════════════════════════════════════════════════════════════════════════╗\n");
+    printf("║                                📚 AJUDA - GenieC                              ║\n");
+    printf("╚═══════════════════════════════════════════════════════════════════════════════╝\n");
+    printf("\033[0m"); // Reset
+
+    printf("\n\033[1;37m🎯 Como usar o GenieC:\033[0m\n");
+    printf("   • Digite sua pergunta diretamente e pressione Enter\n");
+    printf("   • O GenieC mantém o contexto da conversa automaticamente\n");
+    printf("   • Use comandos especiais para funcionalidades extras\n\n");
+
+    printf("\033[1;37m📝 Comandos Disponíveis:\033[0m\n");
+    printf("   \033[36m• limpar\033[0m     - Limpa todo o histórico e inicia nova conversa\n");
+    printf("   \033[36m• historico\033[0m  - Exibe todo o histórico da conversa atual\n");
+    printf("   \033[36m• help\033[0m       - Mostra esta tela de ajuda\n");
+    printf("   \033[31m• 0\033[0m          - Encerra o programa\n\n");
+
+    printf("\033[1;37m💡 Dicas para melhores resultados:\033[0m\n");
+    printf("   🔹 Seja específico: \"Receita de bolo de chocolate\" é melhor que \"receita\"\n");
+    printf("   🔹 Inclua localização: \"Tempo em São Paulo\" para informações locais\n");
+    printf("   🔹 Faça perguntas de follow-up: O GenieC lembra da conversa anterior\n");
+    printf("   🔹 Use contexto: \"E sobre o Rio de Janeiro?\" após perguntar sobre SP\n\n");
+
+    printf("\033[1;37m🌟 Exemplos de perguntas:\033[0m\n");
+    printf("   \033[32m• \"Qual é a previsão do tempo para hoje em Brasília?\"\033[0m\n");
+    printf("   \033[32m• \"Como fazer um currículo profissional?\"\033[0m\n");
+    printf("   \033[32m• \"Receita simples de lasanha para 4 pessoas\"\033[0m\n");
+    printf("   \033[32m• \"Explique o que é inteligência artificial\"\033[0m\n");
+    printf("   \033[32m• \"Dicas de estudos para concursos públicos\"\033[0m\n\n");
+
+    printf("\033[1;37m⚙️ Funcionalidades:\033[0m\n");
+    printf("   ✅ Pesquisa em tempo real via Google\n");
+    printf("   ✅ Contexto de conversa preservado\n");
+    printf("   ✅ Respostas em português brasileiro\n");
+    printf("   ✅ Interface colorida e intuitiva\n\n");
+
+    printf("\033[1;33m💬 Agora você pode continuar fazendo suas perguntas!\033[0m\n");
+    printf("────────────────────────────────────────────────────────────────────────────────\n");
+}
 
 // Cria o payload JSON usando a biblioteca cJSON.
 char* criar_payload_json_com_historico(const char* prompt, ChatHistory* history) {
@@ -368,7 +513,7 @@ char* fazer_requisicao_http(const char* url, const char* payload) {
 
     // Executa o Loading
     mostrar_loading();
-    
+
     // Executa a requisição
     res = curl_easy_perform(curl_handle);
 
@@ -399,7 +544,7 @@ void mostrar_loading() {
         dots++;
         dormir(500);  // espera 0.5 segundos
     }
-    printf("\rProcessando resposta...\n");
+    printf("\rProcessando resposta...");
     fflush(stdout);
 }
 static size_t WriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp) {
@@ -434,7 +579,7 @@ static size_t WriteMemoryCallback(void *contents, size_t size, size_t nmemb, voi
 }
 
 // Funções de Histórico do Chat
-ChatHistory* inicializar_chat_history() {
+ChatHistory* inicializar_chat_historico() {
     // Aloca memória para o histórico do chat
     ChatHistory* history = (ChatHistory*)malloc(sizeof(ChatHistory));
     if (history == NULL) {
@@ -486,10 +631,85 @@ void liberar_chat_history(ChatHistory* history) {
 
 void exibir_historico(ChatHistory* history) {
     if (history != NULL && history->count > 0) {
-        printf("\n--- Histórico da Conversa ---\n");
+        printf("\n----- Histórico da Conversa -----\n");
         for (int i = 0; i < history->count; i++) {
             printf("%s: %s\n", history->turns[i].role, history->turns[i].text);
         }
-        printf("-----------------------------\n");
+        printf("---------------------------------\n");
     }
+}
+
+// Função para obter dados do clima da API OpenWeather
+WeatherData obter_dados_clima(const char* cidade) {
+    WeatherData weather = {0};
+    weather.valid = 0;
+
+    // Codifica a cidade para URL (resolve problema com espaços)
+    char* cidade_encoded = url_encode(cidade);
+    if (!cidade_encoded) {
+        return weather;
+    }
+
+    // Monta a URL da API OpenWeather
+    char url[512];
+    snprintf(url, sizeof(url), "http://api.openweathermap.org/data/2.5/weather?q=%s&appid=%s&units=metric&lang=pt_br",
+             cidade_encoded, API_KEY_WEATHER);
+
+    // Faz a requisição HTTP
+    CURL *curl;
+    CURLcode res;
+    struct MemoryStruct chunk;
+
+    chunk.memory = malloc(1);
+    chunk.size = 0;
+
+    curl = curl_easy_init();
+    if(curl) {
+        curl_easy_setopt(curl, CURLOPT_URL, url);
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&chunk);
+
+        res = curl_easy_perform(curl);
+
+        if(res == CURLE_OK) {
+            // Parse do JSON da resposta
+            cJSON *json = cJSON_Parse(chunk.memory);
+            if(json) {
+                cJSON *main = cJSON_GetObjectItemCaseSensitive(json, "main");
+                cJSON *weather_array = cJSON_GetObjectItemCaseSensitive(json, "weather");
+                cJSON *name = cJSON_GetObjectItemCaseSensitive(json, "name");
+
+                if(main && weather_array && name) {
+                    cJSON *temp = cJSON_GetObjectItemCaseSensitive(main, "temp");
+                    cJSON *weather_item = cJSON_GetArrayItem(weather_array, 0);
+
+                    if(temp && weather_item) {
+                        cJSON *description = cJSON_GetObjectItemCaseSensitive(weather_item, "description");
+
+                        weather.temperature = (float)temp->valuedouble;
+                        strncpy(weather.city, name->valuestring, MAX_CITY_NAME - 1);
+                        if(description) {
+                            strncpy(weather.description, description->valuestring, 99);
+                        }
+                        weather.valid = 1;
+                    }
+                }
+                cJSON_Delete(json);
+            }
+        }
+        curl_easy_cleanup(curl);
+    }
+
+    // Libera a memória da cidade codificada
+    curl_free(cidade_encoded);
+    free(chunk.memory);
+    return weather;
+}
+
+// Função para codificar URL
+char* url_encode(const char* str) {
+    CURL *curl = curl_easy_init();
+    char *encoded = curl_easy_escape(curl, str, 0);
+    curl_easy_cleanup(curl);
+    return encoded;
 }
