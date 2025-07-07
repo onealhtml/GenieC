@@ -39,6 +39,7 @@ typedef struct {
     char* text;     // Conteúdo da mensagem
 } MessageTurn;
 
+// --- Estrutura para armazenar os turnos da conversa ---
 typedef struct {
     MessageTurn* turns;  // Array de turnos da conversa
     int count;           // Número atual de turnos
