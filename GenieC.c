@@ -49,18 +49,19 @@ typedef struct {
 #define SYSTEM_PROMPT "Você é o GenieC, um assistente pessoal para responder dúvidas do dia a dia. Siga estas diretrizes:\n\n" \
 "COMUNICAÇÃO:\n" \
 "- Responda de forma clara, precisa e educada\n" \
-"- Seja conciso mas completo - evite respostas muito longas, no máximo um parágrafo de texto\n" \
+"- Seja MUITO conciso - máximo 2-3 frases por resposta, pois você roda em um terminal/CLI\n" \
 "- Use linguagem natural e acessível\n" \
-"- Evite usar marcadores de formatação especial\n" \
-"- Se não souber algo, admita honestamente\n\n" \
+"- Evite usar marcadores de formatação especial (sem *negrito*, _itálico_, etc.)\n" \
+"- Se não souber algo, admita honestamente de forma breve\n\n" \
 "PESQUISA E CONTEXTO:\n" \
 "- Use ferramentas de pesquisa quando necessário para informações atualizadas\n" \
+"- IMPORTANTE: Quando o usuário não mencionar uma cidade específica, use automaticamente a cidade '%s' como contexto para perguntas sobre clima, horários, eventos locais, etc.\n" \
 "- Leve em conta o Brasil quando perguntarem sobre horários e coisas afins\n" \
-"- Para perguntas sobre temperatura, clima, horários, eventos locais ou informações específicas de localização, pergunte a cidade/região antes de responder, mas somente quando o usuário não falar a localidade\n" \
-"- Para perguntas ambíguas, peça esclarecimentos específicos\n\n" \
-"IMPORTANTE:\n" \
-"- Quando precisar de localização ou contexto adicional, peça ao usuário para reformular a pergunta com essas informações\n" \
-"- Forneça respostas práticas e úteis sempre que possível"
+"- Para perguntas ambíguas, peça esclarecimentos específicos de forma breve\n\n" \
+"FORMATO DAS RESPOSTAS:\n" \
+"- Interface CLI: suas respostas devem ser diretas e sem formatação especial\n" \
+"- Evite listas longas, use apenas o essencial\n" \
+"- Forneça informações práticas e úteis de forma resumida"
 
 
 // --- Declaração das Funções ---
@@ -69,7 +70,7 @@ WeatherData obter_dados_clima(const char* cidade);   // Função para obter dado
 char* url_encode(const char* str);                   // Função para codificar a URL (resolve problema com espaços)
 void menu_com_clima(WeatherData weather);            // Função para exibir o menu com informações do clima
 void mostrar_ajuda();                                // Função para exibir ajuda e dicas
-char* criar_payload_json_com_historico(const char* prompt, ChatHistory* history); // Função que cria o payload JSON com o histórico do chat
+char* criar_payload_json_com_historico(const char* prompt, ChatHistory* history, const char* cidade); // Função que cria o payload JSON com o histórico do chat
 char* extrair_texto_da_resposta(const char* resposta_json); // Função que extrai o texto da resposta JSON
 
 // --- Funções de Histórico do Chat ---
@@ -151,7 +152,7 @@ int main(){
         // Adiciona a pergunta do usuário ao histórico
         adicionar_turno(chat_historico, "user", minha_pergunta);
 
-        char* payload = criar_payload_json_com_historico(minha_pergunta, chat_historico); // Cria o payload JSON com o histórico do chat
+        char* payload = criar_payload_json_com_historico(minha_pergunta, chat_historico, cidade); // Cria o payload JSON com o histórico do chat e a cidade
         if (payload == NULL) {                                                // Se não conseguiu criar o payload
             fprintf(stderr, "Erro: Não foi possível criar o pacote JSON.\n"); // Exibe mensagem de erro
             continue;                                                         // Volta para o início do loop
@@ -326,22 +327,26 @@ void mostrar_ajuda() {
 }
 
 // Cria o payload JSON usando a biblioteca cJSON.
-char* criar_payload_json_com_historico(const char* prompt, ChatHistory* history) {
+char* criar_payload_json_com_historico(const char* prompt, ChatHistory* history, const char* cidade) {
     // Passo 1: Criamos os objetos necessários para construir o JSON
     cJSON *root = cJSON_CreateObject();           // Objeto principal/raiz
 
-    // Passo 2: Criamos o system_instruction
+    // Passo 2: Criamos o system_instruction com a cidade formatada
     cJSON *system_instruction = cJSON_CreateObject(); // Objeto para instruções do sistema
     cJSON *system_parts = cJSON_CreateArray();        // Array para partes do sistema
     cJSON *system_part = cJSON_CreateObject();        // Objeto para uma parte do sistema
 
-    // Adicionamos o prompt do sistema
-    cJSON_AddItemToObject(system_part, "text", cJSON_CreateString(SYSTEM_PROMPT)); // Texto do prompt do sistema
-    cJSON_AddItemToArray(system_parts, system_part);                               // Adiciona a parte ao array de partes do sistema
-    cJSON_AddItemToObject(system_instruction, "parts", system_parts);              // Adiciona o array de partes ao objeto de instruções do sistema
+    // Cria o prompt do sistema formatado com a cidade
+    char system_prompt_formatado[4096];
+    snprintf(system_prompt_formatado, sizeof(system_prompt_formatado), SYSTEM_PROMPT, cidade);
+
+    // Adicionamos o prompt do sistema formatado
+    cJSON_AddItemToObject(system_part, "text", cJSON_CreateString(system_prompt_formatado)); // Texto do prompt do sistema com a cidade
+    cJSON_AddItemToArray(system_parts, system_part);                                         // Adiciona a parte ao array de partes do sistema
+    cJSON_AddItemToObject(system_instruction, "parts", system_parts);                        // Adiciona o array de partes ao objeto de instruções do sistema
 
     // Adicionamos o system_instruction ao objeto root
-    cJSON_AddItemToObject(root, "system_instruction", system_instruction); //
+    cJSON_AddItemToObject(root, "system_instruction", system_instruction);
 
     // Passo 3: Criamos o array contents com o histórico
     cJSON *contents_array = cJSON_CreateArray();
@@ -530,7 +535,7 @@ char* fazer_requisicao_http(const char* url, const char* payload) {
 // Função para codificar a URL (resolve problema com espaços)
 void mostrar_loading() {
     int dots = 0;                  // Contador de pontos para animação
-    for (int i = 0; i < 6; i++) {  // 6 vezes de 0.5s = 3 segundos
+    for (int i = 0; i < 4; i++) {  // 6 vezes de 0.5s = 3 segundos
         printf("\rConsultando IA%s", (dots % 4 == 0 ? "   " : dots % 4 == 1 ? "." : dots % 4 == 2 ? ".." : "..."));
         fflush(stdout);            // Atualiza a saída padrão imediatamente
         dots++;                    // Incrementa o contador de pontos
