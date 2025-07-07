@@ -87,7 +87,7 @@ Abra o arquivo `api_key.example.h`, renomeie para `api_key.h` e configure ambas 
 
 ### Exemplo de uso:
 ```
-🌍 Digite o nome da sua cidade para obter informações do clima: São Paulo
+🌍 Digite o nome da sua cidade para obter informações do clima: Santa Cruz do Sul
 
 ╔═════════════════════════════════════════════════════════════════════════════╗
 ║                ██████╗ ███████╗███╗   ██╗██╗███████╗ ██████╗                ║
@@ -100,7 +100,7 @@ Abra o arquivo `api_key.example.h`, renomeie para `api_key.h` e configure ambas 
 
 🤖 Bem-vindo ao GenieC - Seu Assistente Inteligente Gemini! 🤖
 
-🌤️ Clima atual em São Paulo: 22.5°C - parcialmente nublado
+🌤️ Clima atual em Santa Cruz do Sul: 22.5°C - parcialmente nublado
 
 Você: Quem é o atual Papa?
 GenieC: O atual Papa da Igreja Católica é Leão XIV. Ele foi eleito em 8 de maio de 2025, sucedendo o Papa Francisco.
