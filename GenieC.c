@@ -6,21 +6,21 @@
  * Universidade de Santa Cruz do Sul (UNISC).
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <locale.h>
+#include <stdio.h>   // Biblioteca padrão de entrada e saída
+#include <stdlib.h>  // Biblioteca padrão de alocação de memória e funções utilitárias
+#include <string.h>  // Biblioteca para manipulação de strings
+#include <locale.h>  // Biblioteca para configuração de localidade
 
-#include <curl/curl.h>
-#include <cjson/cJSON.h>
+#include <curl/curl.h>    // Biblioteca cURL para requisições HTTP
+#include <cjson/cJSON.h>  // Biblioteca cJSON para manipulação de JSON
 
-#include "api_key.h"
-#include "limpar_tela.h"
-#include "dormir.h"
+#include "api_key.h"      // Arquivo de cabeçalho com a chave da API
+#include "limpar_tela.h"  // Função para limpar a tela
+#include "dormir.h"       // Função para dormir (pausar a execução)
 
 // --- Configurações Iniciais ---
 #define MODELO_GEMINI "gemini-2.5-flash" // Nome do modelo Gemini
-#define API_BASE_URL "https://generativelanguage.googleapis.com/v1beta/models/" MODELO_GEMINI ":generateContent?key=" //
+#define API_BASE_URL "https://generativelanguage.googleapis.com/v1beta/models/" MODELO_GEMINI ":generateContent?key=" // URL base da API do Gemini
 #define MAX_PROMPT_SIZE 10000 // Tamanho máximo do prompt
 #define MAX_HISTORY_SIZE 50   // Máximo de turnos no histórico
 #define MAX_CITY_NAME 100     // Tamanho máximo do nome da cidade
@@ -64,121 +64,121 @@ typedef struct {
 
 
 // --- Declaração das Funções ---
-void mostrar_arte_inicial();
-WeatherData obter_dados_clima(const char* cidade);
-char* url_encode(const char* str);
-void menu_com_clima(WeatherData weather);
-void mostrar_ajuda();
-char* criar_payload_json_com_historico(const char* prompt, ChatHistory* history);
-char* extrair_texto_da_resposta(const char* resposta_json);
+void mostrar_arte_inicial();                         // Função para mostrar a arte ASCII inicial
+WeatherData obter_dados_clima(const char* cidade);   // Função para obter dados do clima da API OpenWeather
+char* url_encode(const char* str);                   // Função para codificar a URL (resolve problema com espaços)
+void menu_com_clima(WeatherData weather);            // Função para exibir o menu com informações do clima
+void mostrar_ajuda();                                // Função para exibir ajuda e dicas
+char* criar_payload_json_com_historico(const char* prompt, ChatHistory* history); // Função que cria o payload JSON com o histórico do chat
+char* extrair_texto_da_resposta(const char* resposta_json); // Função que extrai o texto da resposta JSON
 
 // --- Funções de Histórico do Chat ---
-ChatHistory* inicializar_chat_historico();
-void adicionar_turno(ChatHistory* history, const char* role, const char* text);
-void liberar_chat_history(ChatHistory* history);
-void exibir_historico(ChatHistory* history);
+ChatHistory* inicializar_chat_historico(); // Função para inicializar o histórico do chat
+void adicionar_turno(ChatHistory* history, const char* role, const char* text); // Função para adicionar um turno ao histórico do chat
+void liberar_chat_history(ChatHistory* history); // Função para liberar a memória do histórico do chat
+void exibir_historico(ChatHistory* history);     // Função para exibir o histórico do chat
 void mostrar_loading();
 
 // --- Requisição HTTP ---
 struct MemoryStruct { // Estrutura para armazenar a resposta da requisição HTTP (padrão cURL)
-    char *memory;
-    size_t size;
+    char *memory; // Ponteiro para armazenar os dados recebidos
+    size_t size;  // Tamanho atual dos dados armazenados
 };
 
 static size_t WriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp); // Callback para armazenar a resposta (padrão cURL)
 char* fazer_requisicao_http(const char* url, const char* payload); // Função que faz a requisição HTTP usando cURL
 
 int main(){
-    setlocale(LC_ALL, "Portuguese_Brazil.utf8");
-    system("chcp 65001");
+    setlocale(LC_ALL, "Portuguese_Brazil.utf8"); // Configura a localidade para português brasileiro
+    system("chcp 65001"); // Configura o console para UTF-8 (Windows)
     limpar_tela(); // Limpa a tela ao iniciar
 
     // Mostra a arte ASCII inicial
     mostrar_arte_inicial();
 
     // Solicita a cidade do usuário
-    char cidade[MAX_CITY_NAME];
-    printf("\n\033[1;36m🌍 Digite o nome da sua cidade para obter informações do clima:\033[0m ");
-    fgets(cidade, sizeof(cidade), stdin);
-    cidade[strcspn(cidade, "\n")] = 0; // Remove quebra de linha
+    char cidade[MAX_CITY_NAME];           // Buffer para armazenar o nome da cidade
+    printf("\n\033[1;36m🌍 Digite o nome da sua cidade para obter informações do clima:\033[0m "); // Exibe mensagem para o usuário
+    fgets(cidade, sizeof(cidade), stdin); // Lê o nome da cidade
+    cidade[strcspn(cidade, "\n")] = 0;    // Remove quebra de linha
 
     // Obtém dados do clima
-    printf("\n\033[33m🌤️ Obtendo informações do clima...\033[0m\n");
-    WeatherData clima = obter_dados_clima(cidade);
+    printf("\n\033[33m🌤️ Obtendo informações do clima...\033[0m\n"); // Exibe mensagem de carregamento
+    WeatherData clima = obter_dados_clima(cidade);                   // Chama a função para obter os dados do clima
 
-    limpar_tela();
-    menu_com_clima(clima);
+    limpar_tela();         // Limpa a tela
+    menu_com_clima(clima); // Exibe o menu com informações do clima
 
     // Inicializa o histórico do chat
-    ChatHistory* chat_historico = inicializar_chat_historico();
-    if (chat_historico == NULL) {
-        fprintf(stderr, "Erro ao inicializar o histórico do chat.\n");
-        return 1;
+    ChatHistory* chat_historico = inicializar_chat_historico();        // Função para inicializar o histórico do chat
+    if (chat_historico == NULL) {                                      // Se a inicialização falhar
+        fprintf(stderr, "Erro ao inicializar o histórico do chat.\n"); // Exibe mensagem de erro
+        return 1;                                                      // Encerra o programa com erro
     }
 
-    while (1) { // Loop infinito
-        char minha_pergunta[MAX_PROMPT_SIZE]; // Buffer para armazenar a pergunta do usuário
-        printf("Você: ");
-        fgets(minha_pergunta, sizeof(minha_pergunta), stdin);
-        minha_pergunta[strcspn(minha_pergunta, "\n")] = 0;
+    while (1) { // Loop infinito até o usuário decidir sair
+        char minha_pergunta[MAX_PROMPT_SIZE];                 // Buffer para armazenar a pergunta do usuário
+        printf("Você: ");                                     // Exibe prompt para o usuário
+        fgets(minha_pergunta, sizeof(minha_pergunta), stdin); // Lê a pergunta do usuário
+        minha_pergunta[strcspn(minha_pergunta, "\n")] = 0;    // Remove a quebra de linha do final da string
 
         // Condição de saída
-        if (strcmp(minha_pergunta, "0") == 0)
-            break;
+        if (strcmp(minha_pergunta, "0") == 0) // Se o usuário digitar "0"
+            break;                            // Saí do loop
 
         // Comando para limpar histórico
-        if (strcmp(minha_pergunta, "limpar") == 0) {
-            limpar_tela();
-            liberar_chat_history(chat_historico);
-            chat_historico = inicializar_chat_historico();
-            menu_com_clima(clima);
-            printf("Histórico limpo! Nova conversa iniciada.\n\n");
-            continue;
+        if (strcmp(minha_pergunta, "limpar") == 0) {                // Se o usuário digitar "limpar"
+            limpar_tela();                                          // Limpa a tela
+            liberar_chat_history(chat_historico);                   // Chama a função que libera o histórico atual
+            chat_historico = inicializar_chat_historico();          // Chama a função que reinicializa o histórico do chat
+            menu_com_clima(clima);                                  // Exibe o menu novamente com as informações do clima
+            printf("Histórico limpo! Nova conversa iniciada.\n\n"); // Exibe mensagem de confirmação
+            continue;                                               // Volta para o início do loop para nova pergunta
         }
 
         // Comando para exibir histórico
-        if (strcmp(minha_pergunta, "historico") == 0) {
-            exibir_historico(chat_historico);
-            continue;
+        if (strcmp(minha_pergunta, "historico") == 0) { // Se o usuário digitar "historico"
+            exibir_historico(chat_historico);           // Chama a função que exibe o histórico do chat
+            continue;                                   // Volta para o início do loop para nova pergunta
         }
 
         // Comando para mostrar ajuda
-        if (strcmp(minha_pergunta, "help") == 0) {
-            mostrar_ajuda();
-            continue;
+        if (strcmp(minha_pergunta, "help") == 0) { // Se o usuário digitar "help"
+            mostrar_ajuda();                       // Chama a função que exibe a ajuda
+            continue;                              // Volta para o início do loop para nova pergunta
         }
 
         // Adiciona a pergunta do usuário ao histórico
         adicionar_turno(chat_historico, "user", minha_pergunta);
 
-        char* payload = criar_payload_json_com_historico(minha_pergunta, chat_historico);
-        if (payload == NULL) {
-            fprintf(stderr, "Erro: Não foi possível criar o pacote JSON.\n");
-            continue; // Volta para o início do loop
+        char* payload = criar_payload_json_com_historico(minha_pergunta, chat_historico); // Cria o payload JSON com o histórico do chat
+        if (payload == NULL) {                                                // Se não conseguiu criar o payload
+            fprintf(stderr, "Erro: Não foi possível criar o pacote JSON.\n"); // Exibe mensagem de erro
+            continue;                                                         // Volta para o início do loop
         }
 
-        char url_completa[512];
-        strcpy(url_completa, API_BASE_URL);
-        strcat(url_completa, API_KEY);
+        char url_completa[512];             // Buffer para armazenar a URL completa
+        strcpy(url_completa, API_BASE_URL); // Copia a URL base da API
+        strcat(url_completa, API_KEY);      // Concatena a chave da API
 
-        char* resposta_bruta = fazer_requisicao_http(url_completa, payload);
-        if (resposta_bruta == NULL) {
-            fprintf(stderr, "Erro: A comunicação com a API falhou.\n");
-            free(payload);
-            continue; // Volta para o início do loop
+        char* resposta_bruta = fazer_requisicao_http(url_completa, payload); // Faz a requisição HTTP para a API do Gemini
+        if (resposta_bruta == NULL) {                                        // Se a requisição falhar
+            fprintf(stderr, "Erro: A comunicação com a API falhou.\n");      // Exibe mensagem de erro
+            free(payload);                                                   // Libera a memória do payload
+            continue;                                                        // Volta para o início do loop
         }
 
-        char* texto_final = extrair_texto_da_resposta(resposta_bruta);
-        if (texto_final == NULL) {
-            fprintf(stderr, "Erro: Não foi possível extrair o texto da resposta da API.\n");
-            fprintf(stderr, "Resposta bruta recebida: %s\n", resposta_bruta);
-            free(payload);
-            free(resposta_bruta);
-            continue; // Volta para o início do loop
+        char* texto_final = extrair_texto_da_resposta(resposta_bruta);        // Extrai o texto da resposta JSON
+        if (texto_final == NULL) {                                            // Se não conseguiu extrair o texto
+            fprintf(stderr, "Erro: Não foi possível extrair o texto da resposta da API.\n"); // Exibe mensagem de erro
+            fprintf(stderr, "Resposta bruta recebida: %s\n", resposta_bruta); // Exibe a resposta bruta para depuração
+            free(payload);                                                    // Libera a memória do payload
+            free(resposta_bruta);                                             // Libera a memória da resposta bruta
+            continue;                                                         // Volta para o início do loop
         }
 
         printf("\r                         \r"); // Limpa a linha atual
-        printf("\nGenieC: %s\n\n", texto_final);
+        printf("\nGenieC: %s\n\n", texto_final); // Exibe a resposta do Gemini
 
         // Adiciona a resposta do Gemini ao histórico
         adicionar_turno(chat_historico, "model", texto_final);
@@ -192,13 +192,13 @@ int main(){
     // Libera o histórico antes de sair
     liberar_chat_history(chat_historico);
 
-    printf("\nFinalizando o programa...\n");
-    dormir(2000);
-    return 0;
+    printf("\nFinalizando o programa...\n"); // Exibe mensagem de finalização
+    dormir(2000);                            // Pausa de 2 segundos antes de encerrar
+    return 0;                                // Encerra o programa com sucesso
 }
 
 // ==============================================================================
-// Funções
+//                                   FUNÇÕES
 // ==============================================================================
 
 // Função para mostrar a arte ASCII inicial
@@ -224,7 +224,7 @@ void mostrar_arte_inicial() {
 
 // Função para exibir o menu com informações do clima
 void menu_com_clima(WeatherData weather) {
-    printf("\033[36m"); // Cyan para o título ASCII
+    printf("\033[36m"); // Ciano para o título ASCII
     printf("╔═════════════════════════════════════════════════════════════════════════════╗\n");
     printf("║                                                                             ║\n");
     printf("║                ██████╗ ███████╗███╗   ██╗██╗███████╗ ██████╗                ║\n");
@@ -238,15 +238,15 @@ void menu_com_clima(WeatherData weather) {
     printf("\033[0m"); // Reset cor
 
     printf("\n");
-    printf("\033[1;32m"); // Verde bold para o título
-    printf("🤖 Bem-vindo ao GenieC - Seu Assistente Inteligente Gemini! 🤖\n");
+    printf("\033[1;32m"); // Verde forte para o título
+    printf("🤖 Bem-vindo ao GenieC - Seu Assistente Inteligente Gemini! 🤖\n"); // Exibe mensagem de boas-vindas
     printf("\033[0m"); // Reset cor
 
     // Exibe informações do clima
     if(weather.valid) {
         printf("\n");
-        printf("\033[1;34m"); // Azul bold para clima
-        printf("🌤️  Clima atual em %s: %.1f°C - %s\n", weather.city, weather.temperature, weather.description);
+        printf("\033[1;34m"); // Azul forte para clima
+        printf("🌤️  Clima atual em %s: %.1f°C - %s\n", weather.city, weather.temperature, weather.description); // Exibe a cidade, temperatura e descrição do clima
         printf("\033[0m"); // Reset cor
     } else {
         printf("\n");
@@ -331,48 +331,48 @@ char* criar_payload_json_com_historico(const char* prompt, ChatHistory* history)
     cJSON *root = cJSON_CreateObject();           // Objeto principal/raiz
 
     // Passo 2: Criamos o system_instruction
-    cJSON *system_instruction = cJSON_CreateObject();
-    cJSON *system_parts = cJSON_CreateArray();
-    cJSON *system_part = cJSON_CreateObject();
+    cJSON *system_instruction = cJSON_CreateObject(); // Objeto para instruções do sistema
+    cJSON *system_parts = cJSON_CreateArray();        // Array para partes do sistema
+    cJSON *system_part = cJSON_CreateObject();        // Objeto para uma parte do sistema
 
     // Adicionamos o prompt do sistema
-    cJSON_AddItemToObject(system_part, "text", cJSON_CreateString(SYSTEM_PROMPT));
-    cJSON_AddItemToArray(system_parts, system_part);
-    cJSON_AddItemToObject(system_instruction, "parts", system_parts);
+    cJSON_AddItemToObject(system_part, "text", cJSON_CreateString(SYSTEM_PROMPT)); // Texto do prompt do sistema
+    cJSON_AddItemToArray(system_parts, system_part);                               // Adiciona a parte ao array de partes do sistema
+    cJSON_AddItemToObject(system_instruction, "parts", system_parts);              // Adiciona o array de partes ao objeto de instruções do sistema
 
     // Adicionamos o system_instruction ao objeto root
-    cJSON_AddItemToObject(root, "system_instruction", system_instruction);
+    cJSON_AddItemToObject(root, "system_instruction", system_instruction); //
 
-    // Passo 3: Criamos o array contents com todo o histórico
+    // Passo 3: Criamos o array contents com o histórico
     cJSON *contents_array = cJSON_CreateArray();
 
     // Se existe histórico, adiciona todos os turnos exceto o último (que é a pergunta atual)
-    if (history != NULL && history->count > 1) {
-        for (int i = 0; i < history->count - 1; i++) {
-            cJSON *content_item = cJSON_CreateObject();
-            cJSON *parts_array = cJSON_CreateArray();
-            cJSON *part_item = cJSON_CreateObject();
+    if (history != NULL && history->count > 1) {        // Verifica se há histórico e se tem mais de um turno
+        for (int i = 0; i < history->count - 1; i++) {  // Percorre todos os turnos, exceto o último
+            cJSON *content_item = cJSON_CreateObject(); // Cria um objeto para o conteúdo do turno
+            cJSON *parts_array = cJSON_CreateArray();   // Cria um array para as partes do turno
+            cJSON *part_item = cJSON_CreateObject();    // Cria um objeto para uma parte do turno
 
             // Adiciona o texto do turno
-            cJSON_AddItemToObject(part_item, "text", cJSON_CreateString(history->turns[i].text));
-            cJSON_AddItemToArray(parts_array, part_item);
-            cJSON_AddItemToObject(content_item, "parts", parts_array);
-            cJSON_AddItemToObject(content_item, "role", cJSON_CreateString(history->turns[i].role));
+            cJSON_AddItemToObject(part_item, "text", cJSON_CreateString(history->turns[i].text));    // Adiciona o texto do turno ao objeto part_item
+            cJSON_AddItemToArray(parts_array, part_item);                  // Adiciona a parte ao array de partes
+            cJSON_AddItemToObject(content_item, "parts", parts_array);     // Adiciona o array de partes ao objeto content_item
+            cJSON_AddItemToObject(content_item, "role", cJSON_CreateString(history->turns[i].role)); // Adiciona o papel (role) do turno ao objeto content_item
 
-            cJSON_AddItemToArray(contents_array, content_item);
+            cJSON_AddItemToArray(contents_array, content_item); // Adiciona o objeto content_item ao array contents_array
         }
     }
 
     // Adiciona a pergunta atual do usuário
-    cJSON *user_content = cJSON_CreateObject();
-    cJSON *user_parts = cJSON_CreateArray();
-    cJSON *user_part = cJSON_CreateObject();
+    cJSON *user_content = cJSON_CreateObject(); // Cria um objeto para o conteúdo do usuário
+    cJSON *user_parts = cJSON_CreateArray();    // Cria um array para as partes do usuário
+    cJSON *user_part = cJSON_CreateObject();    // Cria um objeto para uma parte do usuário
 
-    cJSON_AddItemToObject(user_part, "text", cJSON_CreateString(prompt));
-    cJSON_AddItemToArray(user_parts, user_part);
-    cJSON_AddItemToObject(user_content, "parts", user_parts);
-    cJSON_AddItemToObject(user_content, "role", cJSON_CreateString("user"));
-    cJSON_AddItemToArray(contents_array, user_content);
+    cJSON_AddItemToObject(user_part, "text", cJSON_CreateString(prompt));    // Adiciona o texto da pergunta atual ao objeto user_part
+    cJSON_AddItemToArray(user_parts, user_part);                             // Adiciona a parte ao array de partes do usuário
+    cJSON_AddItemToObject(user_content, "parts", user_parts);                // Adiciona o array de partes ao objeto user_content
+    cJSON_AddItemToObject(user_content, "role", cJSON_CreateString("user")); // Adiciona o papel (role) do usuário ao objeto user_content
+    cJSON_AddItemToArray(contents_array, user_content);                      // Adiciona o objeto user_content ao array contents_array
 
     // Passo 4: Adicionamos o array contents_array ao objeto root
     cJSON_AddItemToObject(root, "contents", contents_array);
@@ -415,9 +415,9 @@ char* extrair_texto_da_resposta(const char* resposta_json) {
     cJSON *root = cJSON_Parse(resposta_json);
 
     // Verificar se o parsing foi bem-sucedido
-    if (root == NULL) {
-        fprintf(stderr, "Erro ao parsear o JSON da resposta.\n");
-        return NULL;
+    if (root == NULL) {                                             // Se o parsing falhar
+        fprintf(stderr, "Erro ao parsear o JSON da resposta.\n");   // Exibe mensagem de erro
+        return NULL;                                                // Retorna NULL indicando falha
     }
 
     // Passo 2: Declarar variáveis para navegar na estrutura do JSON
@@ -481,28 +481,28 @@ char* extrair_texto_da_resposta(const char* resposta_json) {
 // --- Funções do cURL ---
 char* fazer_requisicao_http(const char* url, const char* payload) {
     // Inicializa as variáveis necessárias
-    CURL *curl_handle;                // Manipulador do cURL
-    CURLcode res;                     // Código de resultado da operação
-    struct MemoryStruct chunk;        // Estrutura para armazenar a resposta
+    CURL *curl_handle;                 // Manipulador do cURL
+    CURLcode res;                      // Código de resultado da operação
+    struct MemoryStruct chunk;         // Estrutura para armazenar a resposta
 
     // Inicializa a estrutura de memória
-    chunk.memory = malloc(1);         // Aloca um byte inicial
-    chunk.size = 0;                   // Inicializa o tamanho como zero
+    chunk.memory = malloc(1);          // Aloca um byte inicial
+    chunk.size = 0;                    // Inicializa o tamanho como zero
 
     // Inicializa a biblioteca cURL
-    curl_global_init(CURL_GLOBAL_ALL);
-    curl_handle = curl_easy_init();
+    curl_global_init(CURL_GLOBAL_ALL); // Inicializa a biblioteca cURL com todas as opções globais
+    curl_handle = curl_easy_init();    // Cria um manipulador cURL
 
     // Verifica se a inicialização deu certo
-    if (!curl_handle) {
-        fprintf(stderr, "Erro ao iniciar o cURL\n");
-        free(chunk.memory);
-        return NULL;
+    if (!curl_handle) {                              // Se não conseguiu inicializar o cURL
+        fprintf(stderr, "Erro ao iniciar o cURL\n"); // Exibe mensagem de erro
+        free(chunk.memory);                          // Libera a memória alocada
+        return NULL;                                 // Retorna NULL indicando falha
     }
 
     // Configura os cabeçalhos da requisição
-    struct curl_slist *headers = NULL;
-    headers = curl_slist_append(headers, "Content-Type: application/json");
+    struct curl_slist *headers = NULL; // Lista de cabeçalhos para a requisição
+    headers = curl_slist_append(headers, "Content-Type: application/json"); // Define o tipo de conteúdo como JSON
 
     // Configura as opções da requisição
     curl_easy_setopt(curl_handle, CURLOPT_URL, url);                           // Define a URL
@@ -511,42 +511,44 @@ char* fazer_requisicao_http(const char* url, const char* payload) {
     curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, WriteMemoryCallback); // Define a função de callback
     curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, (void *)&chunk);          // Define onde salvar os dados
 
-    // Executa o Loading
+    // Executa o Loading (simula uma animação de carregamento, pois não conseguimos realizar mais de uma tarefa ao mesmo tempo)
     mostrar_loading();
 
     // Executa a requisição
     res = curl_easy_perform(curl_handle);
 
     // Verifica se houve erro
-    if (res != CURLE_OK) {
-        fprintf(stderr, "A requisição cURL falhou: %s\n", curl_easy_strerror(res));
-        free(chunk.memory);
-        curl_slist_free_all(headers);
-        curl_easy_cleanup(curl_handle);
-        curl_global_cleanup();
-        return NULL;
+    if (res != CURLE_OK) {                                                          // Se a requisição falhou
+        fprintf(stderr, "A requisição cURL falhou: %s\n", curl_easy_strerror(res)); // Exibe mensagem de erro
+        free(chunk.memory);                                                         // Libera a memória alocada
+        curl_slist_free_all(headers);                                               // Libera os cabeçalhos
+        curl_easy_cleanup(curl_handle);                                             // Libera o manipulador cURL
+        curl_global_cleanup();                                                      // Libera os recursos globais do cURL
+        return NULL;                                                                // Retorna NULL indicando falha
     }
 
     // Libera os recursos utilizados
-    curl_slist_free_all(headers);
-    curl_easy_cleanup(curl_handle);
-    curl_global_cleanup();
+    curl_slist_free_all(headers);   // Libera a lista de cabeçalhos
+    curl_easy_cleanup(curl_handle); // Libera o manipulador cURL
+    curl_global_cleanup();          // Libera os recursos globais do cURL
 
     // Retorna a resposta obtida
     return chunk.memory;
 }
-
+// Função para codificar a URL (resolve problema com espaços)
 void mostrar_loading() {
-    int dots = 0;
+    int dots = 0;                  // Contador de pontos para animação
     for (int i = 0; i < 6; i++) {  // 6 vezes de 0.5s = 3 segundos
         printf("\rConsultando IA%s", (dots % 4 == 0 ? "   " : dots % 4 == 1 ? "." : dots % 4 == 2 ? ".." : "..."));
-        fflush(stdout);
-        dots++;
-        dormir(500);  // espera 0.5 segundos
+        fflush(stdout);            // Atualiza a saída padrão imediatamente
+        dots++;                    // Incrementa o contador de pontos
+        dormir(500);               // espera 0.5 segundos
     }
     printf("\rProcessando resposta...");
-    fflush(stdout);
+    fflush(stdout); // Atualiza a saída padrão imediatamente
 }
+
+// Função de callback para armazenar a resposta da requisição HTTP
 static size_t WriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp) {
     // Calcula o tamanho real dos dados recebidos
     size_t realsize = size * nmemb;
@@ -582,9 +584,9 @@ static size_t WriteMemoryCallback(void *contents, size_t size, size_t nmemb, voi
 ChatHistory* inicializar_chat_historico() {
     // Aloca memória para o histórico do chat
     ChatHistory* history = (ChatHistory*)malloc(sizeof(ChatHistory));
-    if (history == NULL) {
-        fprintf(stderr, "Erro ao alocar memória para o histórico do chat.\n");
-        return NULL;
+    if (history == NULL) {                                                     // Se a alocação falhar
+        fprintf(stderr, "Erro ao alocar memória para o histórico do chat.\n"); // Exibe mensagem de erro
+        return NULL;                                                           // Retorna NULL indicando falha
     }
 
     // Inicializa os campos do histórico
@@ -592,35 +594,37 @@ ChatHistory* inicializar_chat_historico() {
     history->count = 0;
     history->capacity = 0;
 
+    // Retorna o ponteiro para o histórico inicializado
     return history;
 }
 
+// Função para adicionar um novo turno ao histórico do chat
 void adicionar_turno(ChatHistory* history, const char* role, const char* text) {
     // Verifica se o histórico precisa ser expandido
     if (history->count >= history->capacity) {
         // Aumenta a capacidade do histórico
-        int nova_capacidade = (history->capacity == 0) ? 2 : history->capacity * 2;
-        MessageTurn* novos_turnos = (MessageTurn*)realloc(history->turns, nova_capacidade * sizeof(MessageTurn));
-        if (novos_turnos == NULL) {
-            fprintf(stderr, "Erro ao alocar memória para os turnos do histórico.\n");
-            return;
+        int nova_capacidade = (history->capacity == 0) ? 2 : history->capacity * 2; // Se a capacidade for zero, define como 2, caso contrário dobra a capacidade atual
+        MessageTurn* novos_turnos = (MessageTurn*)realloc(history->turns, nova_capacidade * sizeof(MessageTurn)); // Aloca memória para os novos turnos com a nova capacidade
+        if (novos_turnos == NULL) { // Se a alocação falhar
+            fprintf(stderr, "Erro ao alocar memória para os turnos do histórico.\n"); // Exibe mensagem de erro
+            return;                 // Retorna sem adicionar o turno
         }
-        history->turns = novos_turnos;
-        history->capacity = nova_capacidade;
+        history->turns = novos_turnos;       // Atualiza o ponteiro para os turnos com a nova memória alocada
+        history->capacity = nova_capacidade; // Atualiza a capacidade do histórico
     }
 
     // Adiciona o novo turno ao histórico
-    MessageTurn* turno_atual = &history->turns[history->count++];
-    turno_atual->role = strdup(role);
-    turno_atual->text = strdup(text);
+    MessageTurn* turno_atual = &history->turns[history->count++]; // Incrementa o contador de turnos e obtém o ponteiro para o turno atual
+    turno_atual->role = strdup(role);                             // Duplica a string do papel (role) do turno
+    turno_atual->text = strdup(text);                             // Duplica a string do texto do turno
 }
 
 void liberar_chat_history(ChatHistory* history) {
     if (history != NULL) {
         // Libera a memória de cada turno
-        for (int i = 0; i < history->count; i++) {
-            free(history->turns[i].role);
-            free(history->turns[i].text);
+        for (int i = 0; i < history->count; i++) { // Percorre todos os turnos
+            free(history->turns[i].role);          // Libera a memória do papel (role) do turno
+            free(history->turns[i].text);          // Libera a memória do texto do turno
         }
         // Libera a memória do array de turnos
         free(history->turns);
@@ -630,10 +634,10 @@ void liberar_chat_history(ChatHistory* history) {
 }
 
 void exibir_historico(ChatHistory* history) {
-    if (history != NULL && history->count > 0) {
+    if (history != NULL && history->count > 0) {                                // Verifica se o histórico não é nulo e tem turnos
         printf("\n----- Histórico da Conversa -----\n");
-        for (int i = 0; i < history->count; i++) {
-            printf("%s: %s\n", history->turns[i].role, history->turns[i].text);
+        for (int i = 0; i < history->count; i++) {                              // Percorre todos os turnos do histórico
+            printf("%s: %s\n", history->turns[i].role, history->turns[i].text); // Exibe o papel (role) e o texto do turno
         }
         printf("---------------------------------\n");
     }
@@ -641,75 +645,76 @@ void exibir_historico(ChatHistory* history) {
 
 // Função para obter dados do clima da API OpenWeather
 WeatherData obter_dados_clima(const char* cidade) {
-    WeatherData weather = {0};
-    weather.valid = 0;
+    WeatherData weather = {0}; // Inicializa a estrutura de dados do clima
+    weather.valid = 0;         // Marca como inválido inicialmente
 
     // Codifica a cidade para URL (resolve problema com espaços)
-    char* cidade_encoded = url_encode(cidade);
-    if (!cidade_encoded) {
-        return weather;
+    char* cidade_encoded = url_encode(cidade); // Função que codifica a cidade para uso em URL
+    if (!cidade_encoded) {                     // Se a codificação falhar
+        return weather;                        // Retorna a estrutura de clima inválida
     }
 
     // Monta a URL da API OpenWeather
-    char url[512];
+    char url[512];                             // Buffer para armazenar a URL completa
     snprintf(url, sizeof(url), "http://api.openweathermap.org/data/2.5/weather?q=%s&appid=%s&units=metric&lang=pt_br",
-             cidade_encoded, API_KEY_WEATHER);
+             cidade_encoded, API_KEY_WEATHER); // Concatena a cidade codificada e a chave da API na URL
 
     // Faz a requisição HTTP
-    CURL *curl;
-    CURLcode res;
-    struct MemoryStruct chunk;
+    CURL *curl;                // Manipulador do cURL
+    CURLcode res;              // Código de resultado da operação
+    struct MemoryStruct chunk; // Estrutura para armazenar a resposta
 
-    chunk.memory = malloc(1);
-    chunk.size = 0;
+    chunk.memory = malloc(1); // Aloca um byte inicial para a memória
+    chunk.size = 0;           // Inicializa o tamanho como zero
 
-    curl = curl_easy_init();
-    if(curl) {
-        curl_easy_setopt(curl, CURLOPT_URL, url);
-        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
-        curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&chunk);
+    curl = curl_easy_init();  // Inicializa o cURL
+    if(curl) {                                                              // Verifica se a inicialização foi bem-sucedida
+        curl_easy_setopt(curl, CURLOPT_URL, url);                           // Define a URL da requisição
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteMemoryCallback); // Define a função de callback para escrever os dados recebidos
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&chunk);          // Define onde os dados recebidos serão armazenados
 
-        res = curl_easy_perform(curl);
+        res = curl_easy_perform(curl); // Executa a requisição HTTP
 
-        if(res == CURLE_OK) {
+        if (res == CURLE_OK) { // Se a requisição foi bem-sucedida
             // Parse do JSON da resposta
-            cJSON *json = cJSON_Parse(chunk.memory);
-            if(json) {
-                cJSON *main = cJSON_GetObjectItemCaseSensitive(json, "main");
-                cJSON *weather_array = cJSON_GetObjectItemCaseSensitive(json, "weather");
-                cJSON *name = cJSON_GetObjectItemCaseSensitive(json, "name");
+            cJSON *json = cJSON_Parse(chunk.memory); // Converte a resposta JSON em um objeto cJSON
+            if (json) { // Se o parsing foi bem-sucedido
+                cJSON *main = cJSON_GetObjectItemCaseSensitive(json, "main");             // Obtém o objeto "main" do JSON
+                cJSON *weather_array = cJSON_GetObjectItemCaseSensitive(json, "weather"); // Obtém o array "weather" do JSON
+                cJSON *name = cJSON_GetObjectItemCaseSensitive(json, "name");             // Obtém o nome da cidade do JSON
 
-                if(main && weather_array && name) {
-                    cJSON *temp = cJSON_GetObjectItemCaseSensitive(main, "temp");
-                    cJSON *weather_item = cJSON_GetArrayItem(weather_array, 0);
+                if (main && weather_array && name) { // Verifica se os objetos necessários foram encontrados
+                    cJSON *temp = cJSON_GetObjectItemCaseSensitive(main, "temp"); // Obtém a temperatura do objeto "main"
+                    cJSON *weather_item = cJSON_GetArrayItem(weather_array, 0);   // Obtém o primeiro item do array "weather"
 
-                    if(temp && weather_item) {
-                        cJSON *description = cJSON_GetObjectItemCaseSensitive(weather_item, "description");
+                    if (temp && weather_item) { // Verifica se a temperatura e o item do clima foram encontrados
+                        cJSON *description = cJSON_GetObjectItemCaseSensitive(weather_item, "description"); // Obtém a descrição do clima
 
-                        weather.temperature = (float)temp->valuedouble;
-                        strncpy(weather.city, name->valuestring, MAX_CITY_NAME - 1);
-                        if(description) {
-                            strncpy(weather.description, description->valuestring, 99);
+                        weather.temperature = (float)temp->valuedouble;              // Converte a temperatura para float
+                        strncpy(weather.city, name->valuestring, MAX_CITY_NAME - 1); // Copia o nome da cidade para a estrutura de clima
+                        if (description) { // Se a descrição foi encontrada
+                            strncpy(weather.description, description->valuestring, 99); // Copia a descrição do clima para a estrutura de clima
                         }
-                        weather.valid = 1;
+                        weather.valid = 1; // Marca os dados do clima como válidos
                     }
                 }
-                cJSON_Delete(json);
+                cJSON_Delete(json); // Libera a memória do objeto cJSON
             }
         }
-        curl_easy_cleanup(curl);
+        curl_easy_cleanup(curl); // Libera o manipulador cURL
     }
 
     // Libera a memória da cidade codificada
     curl_free(cidade_encoded);
     free(chunk.memory);
-    return weather;
+
+    return weather; // Retorna os dados do clima (pode ser inválido se não conseguiu obter os dados)
 }
 
 // Função para codificar URL
 char* url_encode(const char* str) {
-    CURL *curl = curl_easy_init();
-    char *encoded = curl_easy_escape(curl, str, 0);
-    curl_easy_cleanup(curl);
-    return encoded;
+    CURL *curl = curl_easy_init();                  // Inicializa o cURL
+    char *encoded = curl_easy_escape(curl, str, 0); // Codifica a string para URL
+    curl_easy_cleanup(curl);                        // Libera o manipulador cURL
+    return encoded;                                 // Retorna a string codificada (ou NULL se falhar)
 }
