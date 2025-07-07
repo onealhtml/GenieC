@@ -180,7 +180,7 @@ int main(){
         }
 
         printf("\r                         \r"); // Limpa a linha atual
-        printf("\nGenieC: %s\n\n", texto_final); // Exibe a resposta do Gemini
+        printf("\n\033[36mGenieC:\033[0m %s\n\n", texto_final); // Exibe a resposta do Gemini
 
         // Adiciona a resposta do Gemini ao histórico
         adicionar_turno(chat_historico, "model", texto_final);
@@ -220,30 +220,13 @@ void mostrar_arte_inicial() {
 
     printf("\n");
     printf("\033[1;32m"); // Verde bold para o título
-    printf("🤖 Bem-vindo ao GenieC - Seu Assistente Inteligente Gemini! 🤖\n");
+    printf("🤖 Bem-vindo ao GenieC - Seu Assistente Inteligente em C! 🤖\n");
     printf("\033[0m"); // Reset cor
 }
 
 // Função para exibir o menu com informações do clima
 void menu_com_clima(WeatherData weather) {
-    printf("\033[36m"); // Ciano para o título ASCII
-    printf("╔═════════════════════════════════════════════════════════════════════════════╗\n");
-    printf("║                                                                             ║\n");
-    printf("║                ██████╗ ███████╗███╗   ██╗██╗███████╗ ██████╗                ║\n");
-    printf("║               ██╔════╝ ██╔════╝████╗  ██║██║██╔════╝██╔════╝                ║\n");
-    printf("║               ██║  ███╗█████╗  ██╔██╗ ██║██║█████╗  ██║                     ║\n");
-    printf("║               ██║   ██║██╔══╝  ██║╚██╗██║██║██╔══╝  ██║                     ║\n");
-    printf("║               ╚██████╔╝███████╗██║ ╚████║██║███████╗╚██████╗                ║\n");
-    printf("║                ╚═════╝ ╚══════╝╚═╝  ╚═══╝╚═╝╚══════╝ ╚═════╝                ║\n");
-    printf("║                                                                             ║\n");
-    printf("╚═════════════════════════════════════════════════════════════════════════════╝\n");
-    printf("\033[0m"); // Reset cor
-
-    printf("\n");
-    printf("\033[1;32m"); // Verde forte para o título
-    printf("🤖 Bem-vindo ao GenieC - Seu Assistente Inteligente Gemini! 🤖\n"); // Exibe mensagem de boas-vindas
-    printf("\033[0m"); // Reset cor
-
+    mostrar_arte_inicial();
     // Exibe informações do clima
     if(weather.valid) {
         printf("\n");
@@ -278,9 +261,8 @@ void menu_com_clima(WeatherData weather) {
     printf("\n");
     printf("\033[32m"); // Verde para dicas
     printf("💡 \033[1mDicas:\033[0m\033[32m Seja específico em suas perguntas para obter melhores respostas!\n");
-    printf("🌟 \033[1mExemplo:\033[0m\033[32m \"Qual é a previsão do tempo para São Paulo hoje?\"\n");
+    printf("🌟 \033[1mExemplo:\033[0m\033[32m \"Qual é a previsão do tempo para minha cidade hoje?\"\n");
     printf("\033[0m"); // Reset cor
-
     printf("\n");
 }
 
