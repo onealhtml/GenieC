@@ -278,7 +278,7 @@ void menu_com_clima(WeatherData weather) {
     printf("\n");
     printf("\033[32m"); // Verde para dicas
     printf("💡 \033[1mDicas:\033[0m\033[32m Seja específico em suas perguntas para obter melhores respostas!\n");
-    printf("🌟 \033[1mExemplo:\033[0m\033[32m \"Qual é a previsão do tempo para Santa Cruz do Sul hoje?\"\n");
+    printf("🌟 \033[1mExemplo:\033[0m\033[32m \"Qual é a previsão do tempo para São Paulo hoje?\"\n");
     printf("\033[0m"); // Reset cor
 
     printf("\n");
@@ -432,44 +432,36 @@ char* extrair_texto_da_resposta(const char* resposta_json) {
     // Passo 3: Navegar na estrutura JSON para encontrar o texto
     // Formato esperado: {"candidates": [{"content": {"parts": [{"text": "resposta aqui"}]}}]}
 
-    // Verificar se existe o array "candidates"
-    if (cJSON_GetObjectItemCaseSensitive(root, "candidates") &&
-        cJSON_GetObjectItemCaseSensitive(root, "candidates")->type == cJSON_Array) {
+    // Verificar se existe o array "candidates" e se é realmente um array
+    candidates = cJSON_GetObjectItemCaseSensitive(root, "candidates");
+    if (cJSON_IsArray(candidates) && cJSON_GetArraySize(candidates) > 0) {
+        // Pegar o primeiro elemento do array
+        first_candidate = cJSON_GetArrayItem(candidates, 0);
 
-        // Pegar o array "candidates"
-        candidates = cJSON_GetObjectItemCaseSensitive(root, "candidates");
+        // Pegar o objeto "content" dentro do primeiro candidato
+        content = cJSON_GetObjectItemCaseSensitive(first_candidate, "content");
 
-        // Verificar se o array tem pelo menos um elemento
-        if (cJSON_GetArraySize(candidates) > 0) {
-            // Pegar o primeiro elemento do array
-            first_candidate = cJSON_GetArrayItem(candidates, 0);
+        // Verificar se encontrou o objeto "content"
+        if (content) {
+            // Pegar o array "parts" dentro do objeto "content"
+            parts = cJSON_GetObjectItemCaseSensitive(content, "parts");
 
-            // Pegar o objeto "content" dentro do primeiro candidato
-            content = cJSON_GetObjectItemCaseSensitive(first_candidate, "content");
+            // Verificar se encontrou o array "parts" e se é realmente um array
+            if (cJSON_IsArray(parts) && cJSON_GetArraySize(parts) > 0) {
+                // Pegar o primeiro elemento do array
+                first_part = cJSON_GetArrayItem(parts, 0);
 
-            // Verificar se encontrou o objeto "content"
-            if (content) {
-                // Pegar o array "parts" dentro do objeto "content"
-                parts = cJSON_GetObjectItemCaseSensitive(content, "parts");
+                // Pegar o objeto "text" dentro do primeiro elemento
+                text_node = cJSON_GetObjectItemCaseSensitive(first_part, "text");
 
-                // Verificar se encontrou o array "parts"
-                if (parts && parts->type == cJSON_Array) {
-                    // Verificar se o array tem pelo menos um elemento
-                    if (cJSON_GetArraySize(parts) > 0) {
-                        // Pegar o primeiro elemento do array
-                        first_part = cJSON_GetArrayItem(parts, 0);
+                // Verificar se encontrou o objeto "text" e se ele é uma string
+                if (text_node && cJSON_IsString(text_node)) {
+                    // Pegar o valor da string usando a função helper
+                    const char* texto = cJSON_GetStringValue(text_node);
 
-                        // Pegar o objeto "text" dentro do primeiro elemento
-                        text_node = cJSON_GetObjectItemCaseSensitive(first_part, "text");
-
-                        // Verificar se encontrou o objeto "text" e se ele é uma string
-                        if (text_node && text_node->type == cJSON_String) {
-                            // Pegar o valor da string
-                            const char* texto = text_node->valuestring;
-
-                            // Criar uma cópia da string para retornar
-                            texto_extraido = strdup(texto);
-                        }
+                    // Criar uma cópia da string para retornar
+                    if (texto) {
+                        texto_extraido = strdup(texto);
                     }
                 }
             }
@@ -625,9 +617,9 @@ void adicionar_turno(ChatHistory* history, const char* role, const char* text) {
     turno_atual->text = strdup(text);                             // Duplica a string do texto do turno
 }
 
+// Função para limpar o histórico do chat
 void liberar_chat_history(ChatHistory* history) {
-    if (history != NULL) {
-        // Libera a memória de cada turno
+    if (history != NULL) { // Verifica se o histórico não é nulo
         for (int i = 0; i < history->count; i++) { // Percorre todos os turnos
             free(history->turns[i].role);          // Libera a memória do papel (role) do turno
             free(history->turns[i].text);          // Libera a memória do texto do turno
@@ -639,6 +631,7 @@ void liberar_chat_history(ChatHistory* history) {
     }
 }
 
+// Função para exibir o histórico da conversa
 void exibir_historico(ChatHistory* history) {
     if (history != NULL && history->count > 0) {                                // Verifica se o histórico não é nulo e tem turnos
         printf("\n----- Histórico da Conversa -----\n");
@@ -689,17 +682,23 @@ WeatherData obter_dados_clima(const char* cidade) {
                 cJSON *weather_array = cJSON_GetObjectItemCaseSensitive(json, "weather"); // Obtém o array "weather" do JSON
                 cJSON *name = cJSON_GetObjectItemCaseSensitive(json, "name");             // Obtém o nome da cidade do JSON
 
-                if (main && weather_array && name) { // Verifica se os objetos necessários foram encontrados
+                // Verifica se os objetos necessários foram encontrados e seus tipos
+                if (main && weather_array && cJSON_IsArray(weather_array) &&
+                    name && cJSON_IsString(name)) {
                     cJSON *temp = cJSON_GetObjectItemCaseSensitive(main, "temp"); // Obtém a temperatura do objeto "main"
                     cJSON *weather_item = cJSON_GetArrayItem(weather_array, 0);   // Obtém o primeiro item do array "weather"
 
-                    if (temp && weather_item) { // Verifica se a temperatura e o item do clima foram encontrados
+                    // Verifica se a temperatura é um número e se o item do clima existe
+                    if (temp && cJSON_IsNumber(temp) && weather_item) {
                         cJSON *description = cJSON_GetObjectItemCaseSensitive(weather_item, "description"); // Obtém a descrição do clima
 
-                        weather.temperature = (float)temp->valuedouble;              // Converte a temperatura para float
-                        strncpy(weather.city, name->valuestring, MAX_CITY_NAME - 1); // Copia o nome da cidade para a estrutura de clima
-                        if (description) { // Se a descrição foi encontrada
-                            strncpy(weather.description, description->valuestring, 99); // Copia a descrição do clima para a estrutura de clima
+                        weather.temperature = (float)cJSON_GetNumberValue(temp);                            // Converte a temperatura para float
+                        strncpy(weather.city, cJSON_GetStringValue(name), MAX_CITY_NAME - 1);               // Copia o nome da cidade
+                        weather.city[MAX_CITY_NAME - 1] = '\0';                                             // Garante terminação nula
+
+                        if (description && cJSON_IsString(description)) { // Se a descrição foi encontrada e é string
+                            strncpy(weather.description, cJSON_GetStringValue(description), 99); // Copia a descrição
+                            weather.description[99] = '\0';                                       // Garante terminação nula
                         }
                         weather.valid = 1; // Marca os dados do clima como válidos
                     }
