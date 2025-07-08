@@ -27,24 +27,24 @@
 
 // --- Estrutura para dados do clima ---
 typedef struct {
-    char city[MAX_CITY_NAME]; // Nome da cidade
-    float temperature;        // Temperatura em Celsius
+    char cidade[MAX_CITY_NAME]; // Nome da cidade
+    float temperatura;        // Temperatura em Celsius
     char description[100];    // Descrição do clima (ex: "ensolarado", "chuva")
     int valid;                // Flag para indicar se os dados são válidos
-} WeatherData;
+} DataClima;
 
 // --- Estrutura para armazenar o histórico da conversa ---
 typedef struct {
     char* role;     // "user" ou "model"
     char* text;     // Conteúdo da mensagem
-} MessageTurn;
+} TurnoMensagem;
 
 // --- Estrutura para armazenar os turnos da conversa ---
 typedef struct {
-    MessageTurn* turns;  // Array de turnos da conversa
-    int count;           // Número atual de turnos
-    int capacity;        // Capacidade do array de turnos
-} ChatHistory;
+    TurnoMensagem* turno;  // Array de turnos da conversa
+    int contador;           // Número atual de turnos
+    int capacidade;        // Capacidade do array de turnos
+} HistoricoChat;
 
 // --- Prompt Base do Sistema ---
 #define SYSTEM_PROMPT "Você é o GenieC, um assistente pessoal para responder dúvidas do dia a dia. Siga estas diretrizes:\n\n" \
@@ -67,18 +67,18 @@ typedef struct {
 
 // --- Declaração das Funções ---
 void mostrar_arte_inicial();                         // Função para mostrar a arte ASCII inicial
-WeatherData obter_dados_clima(const char* cidade);   // Função para obter dados do clima da API OpenWeather
+DataClima obter_dados_clima(const char* cidade);   // Função para obter dados do clima da API OpenWeather
 char* url_encode(const char* str);                   // Função para codificar a URL (resolve problema com espaços)
-void menu_com_clima(WeatherData weather);            // Função para exibir o menu com informações do clima
+void menu_com_clima(DataClima clima);            // Função para exibir o menu com informações do clima
 void mostrar_ajuda();                                // Função para exibir ajuda e dicas
-char* criar_payload_json_com_historico(const char* prompt, ChatHistory* history, const char* cidade); // Função que cria o payload JSON com o histórico do chat
+char* criar_payload_json_com_historico(const char* prompt, HistoricoChat* historico, const char* cidade); // Função que cria o payload JSON com o histórico do chat
 char* extrair_texto_da_resposta(const char* resposta_json); // Função que extrai o texto da resposta JSON
 
 // --- Funções de Histórico do Chat ---
-ChatHistory* inicializar_chat_historico(); // Função para inicializar o histórico do chat
-void adicionar_turno(ChatHistory* history, const char* role, const char* text); // Função para adicionar um turno ao histórico do chat
-void liberar_chat_history(ChatHistory* history); // Função para liberar a memória do histórico do chat
-void exibir_historico(ChatHistory* history);     // Função para exibir o histórico do chat
+HistoricoChat* inicializar_chat_historico(); // Função para inicializar o histórico do chat
+void adicionar_turno(HistoricoChat* historico, const char* role, const char* text); // Função para adicionar um turno ao histórico do chat
+void liberar_historico_chat(HistoricoChat* historico); // Função para liberar a memória do histórico do chat
+void exibir_historico(HistoricoChat* historico);     // Função para exibir o histórico do chat
 void mostrar_loading();
 
 // --- Requisição HTTP ---
@@ -106,13 +106,13 @@ int main(){
 
     // Obtém dados do clima
     printf("\n\033[33m🌤️ Obtendo informações do clima...\033[0m\n"); // Exibe mensagem de carregamento
-    WeatherData clima = obter_dados_clima(cidade);                   // Chama a função para obter os dados do clima
+    DataClima clima = obter_dados_clima(cidade);                   // Chama a função para obter os dados do clima
 
     limpar_tela();         // Limpa a tela
     menu_com_clima(clima); // Exibe o menu com informações do clima
 
     // Inicializa o histórico do chat
-    ChatHistory* chat_historico = inicializar_chat_historico();        // Função para inicializar o histórico do chat
+    HistoricoChat* chat_historico = inicializar_chat_historico();        // Função para inicializar o histórico do chat
     if (chat_historico == NULL) {                                      // Se a inicialização falhar
         fprintf(stderr, "Erro ao inicializar o histórico do chat.\n"); // Exibe mensagem de erro
         return 1;                                                      // Encerra o programa com erro
@@ -131,7 +131,7 @@ int main(){
         // Comando para limpar histórico
         if (strcmp(minha_pergunta, "limpar") == 0) {                // Se o usuário digitar "limpar"
             limpar_tela();                                          // Limpa a tela
-            liberar_chat_history(chat_historico);                   // Chama a função que libera o histórico atual
+            liberar_historico_chat(chat_historico);                   // Chama a função que libera o histórico atual
             chat_historico = inicializar_chat_historico();          // Chama a função que reinicializa o histórico do chat
             menu_com_clima(clima);                                  // Exibe o menu novamente com as informações do clima
             printf("Histórico limpo! Nova conversa iniciada.\n\n"); // Exibe mensagem de confirmação
@@ -192,7 +192,7 @@ int main(){
     }
 
     // Libera o histórico antes de sair
-    liberar_chat_history(chat_historico);
+    liberar_historico_chat(chat_historico);
 
     printf("\nFinalizando o programa...\n"); // Exibe mensagem de finalização
     dormir(2000);                            // Pausa de 2 segundos antes de encerrar
@@ -225,13 +225,13 @@ void mostrar_arte_inicial() {
 }
 
 // Função para exibir o menu com informações do clima
-void menu_com_clima(WeatherData weather) {
+void menu_com_clima(DataClima clima) {
     mostrar_arte_inicial();
     // Exibe informações do clima
-    if(weather.valid) {
+    if(clima.valid) {
         printf("\n");
         printf("\033[1;34m"); // Azul forte para clima
-        printf("🌤️  Clima atual em %s: %.1f°C - %s\n", weather.city, weather.temperature, weather.description); // Exibe a cidade, temperatura e descrição do clima
+        printf("🌤️  Clima atual em %s: %.1f°C - %s\n", clima.cidade, clima.temperatura, clima.description); // Exibe a cidade, temperatura e descrição do clima
         printf("\033[0m"); // Reset cor
     } else {
         printf("\n");
@@ -310,7 +310,7 @@ void mostrar_ajuda() {
 }
 
 // Cria o payload JSON usando a biblioteca cJSON.
-char* criar_payload_json_com_historico(const char* prompt, ChatHistory* history, const char* cidade) {
+char* criar_payload_json_com_historico(const char* prompt, HistoricoChat* historico, const char* cidade) {
     // Passo 1: Criamos os objetos necessários para construir o JSON
     cJSON *root = cJSON_CreateObject();           // Objeto principal/raiz
 
@@ -335,17 +335,17 @@ char* criar_payload_json_com_historico(const char* prompt, ChatHistory* history,
     cJSON *contents_array = cJSON_CreateArray();
 
     // Se existe histórico, adiciona todos os turnos exceto o último (que é a pergunta atual)
-    if (history != NULL && history->count > 1) {        // Verifica se há histórico e se tem mais de um turno
-        for (int i = 0; i < history->count - 1; i++) {  // Percorre todos os turnos, exceto o último
+    if (historico != NULL && historico->contador > 1) {        // Verifica se há histórico e se tem mais de um turno
+        for (int i = 0; i < historico->contador - 1; i++) {  // Percorre todos os turnos, exceto o último
             cJSON *content_item = cJSON_CreateObject(); // Cria um objeto para o conteúdo do turno
             cJSON *parts_array = cJSON_CreateArray();   // Cria um array para as partes do turno
             cJSON *part_item = cJSON_CreateObject();    // Cria um objeto para uma parte do turno
 
             // Adiciona o texto do turno
-            cJSON_AddItemToObject(part_item, "text", cJSON_CreateString(history->turns[i].text));    // Adiciona o texto do turno ao objeto part_item
+            cJSON_AddItemToObject(part_item, "text", cJSON_CreateString(historico->turno[i].text));    // Adiciona o texto do turno ao objeto part_item
             cJSON_AddItemToArray(parts_array, part_item);                  // Adiciona a parte ao array de partes
             cJSON_AddItemToObject(content_item, "parts", parts_array);     // Adiciona o array de partes ao objeto content_item
-            cJSON_AddItemToObject(content_item, "role", cJSON_CreateString(history->turns[i].role)); // Adiciona o papel (role) do turno ao objeto content_item
+            cJSON_AddItemToObject(content_item, "role", cJSON_CreateString(historico->turno[i].role)); // Adiciona o papel (role) do turno ao objeto content_item
 
             cJSON_AddItemToArray(contents_array, content_item); // Adiciona o objeto content_item ao array contents_array
         }
@@ -457,7 +457,6 @@ char* extrair_texto_da_resposta(const char* resposta_json) {
     return texto_extraido;
 }
 
-
 // --- Funções do cURL ---
 char* fazer_requisicao_http(const char* url, const char* payload) {
     // Inicializa as variáveis necessárias
@@ -542,7 +541,7 @@ static size_t WriteMemoryCallback(void *contents, size_t size, size_t nmemb, voi
     // Verifica se conseguiu alocar memória
     if (ptr == NULL) {
         printf("Erro: não foi possível alocar memória no callback!\n");
-        return 0;
+        return 0; // Retorna 0 para indicar falha na alocação
     }
 
     // Atualiza o ponteiro para a nova área de memória
@@ -550,7 +549,6 @@ static size_t WriteMemoryCallback(void *contents, size_t size, size_t nmemb, voi
 
     // Copia os novos dados para a memória
     memcpy(&(mem->memory[mem->size]), contents, realsize);
-
     // Atualiza o tamanho da memória
     mem->size += realsize;
     // Adiciona um terminador nulo ao final da string
@@ -561,84 +559,84 @@ static size_t WriteMemoryCallback(void *contents, size_t size, size_t nmemb, voi
 }
 
 // Funções de Histórico do Chat
-ChatHistory* inicializar_chat_historico() {
+HistoricoChat* inicializar_chat_historico() {
     // Aloca memória para o histórico do chat
-    ChatHistory* history = (ChatHistory*)malloc(sizeof(ChatHistory));
+    HistoricoChat* history = (HistoricoChat*)malloc(sizeof(HistoricoChat));
     if (history == NULL) {                                                     // Se a alocação falhar
         fprintf(stderr, "Erro ao alocar memória para o histórico do chat.\n"); // Exibe mensagem de erro
         return NULL;                                                           // Retorna NULL indicando falha
     }
 
     // Inicializa os campos do histórico
-    history->turns = NULL;
-    history->count = 0;
-    history->capacity = 0;
+    history->turno = NULL;
+    history->contador = 0;
+    history->capacidade = 0;
 
     // Retorna o ponteiro para o histórico inicializado
     return history;
 }
 
 // Função para adicionar um novo turno ao histórico do chat
-void adicionar_turno(ChatHistory* history, const char* role, const char* text) {
+void adicionar_turno(HistoricoChat* historico, const char* role, const char* text) {
     // Verifica se o histórico precisa ser expandido
-    if (history->count >= history->capacity) {
+    if (historico->contador >= historico->capacidade) {
         // Aumenta a capacidade do histórico
         int nova_capacidade;
 
-        if (history->capacity == 0) // Se a capacidade atual é zero
-            nova_capacidade = 2;  // Define nova capacidade inicial como 2
-        else // Se já tem capacidade
-            nova_capacidade = history->capacity * 2; // Dobra a capacidade atual
+        if (historico->capacidade == 0) // Se a capacidade atual é zero
+            nova_capacidade = 2;        // Define nova capacidade inicial como 2
+        else                            // Se já tem capacidade
+            nova_capacidade = historico->capacidade * 2; // Dobra a capacidade atual
 
-        MessageTurn* novos_turnos = (MessageTurn*)realloc(history->turns, nova_capacidade * sizeof(MessageTurn)); // Aloca memória para os novos turnos com a nova capacidade
+        TurnoMensagem* novos_turnos = (TurnoMensagem*)realloc(historico->turno, nova_capacidade * sizeof(TurnoMensagem)); // Aloca memória para os novos turnos com a nova capacidade
         if (novos_turnos == NULL) { // Se a alocação falhar
             fprintf(stderr, "Erro ao alocar memória para os turnos do histórico.\n"); // Exibe mensagem de erro
             return;                 // Retorna sem adicionar o turno
         }
-        history->turns = novos_turnos;       // Atualiza o ponteiro para os turnos com a nova memória alocada
-        history->capacity = nova_capacidade; // Atualiza a capacidade do histórico
+        historico->turno = novos_turnos;         // Atualiza o ponteiro para os turnos com a nova memória alocada
+        historico->capacidade = nova_capacidade; // Atualiza a capacidade do histórico
     }
 
     // Adiciona o novo turno ao histórico
-    MessageTurn* turno_atual = &history->turns[history->count++]; // Incrementa o contador de turnos e obtém o ponteiro para o turno atual
-    turno_atual->role = strdup(role);                             // Duplica a string do papel (role) do turno
-    turno_atual->text = strdup(text);                             // Duplica a string do texto do turno
+    TurnoMensagem* turno_atual = &historico->turno[historico->contador++]; // Incrementa o contador de turnos e obtém o ponteiro para o turno atual
+    turno_atual->role = strdup(role);                                      // Duplica a string do papel (role) do turno
+    turno_atual->text = strdup(text);                                      // Duplica a string do texto do turno
 }
 
 // Função para limpar o histórico do chat
-void liberar_chat_history(ChatHistory* history) {
-    if (history != NULL) { // Verifica se o histórico não é nulo
-        for (int i = 0; i < history->count; i++) { // Percorre todos os turnos
-            free(history->turns[i].role);          // Libera a memória do papel (role) do turno
-            free(history->turns[i].text);          // Libera a memória do texto do turno
+void liberar_historico_chat(HistoricoChat* historico) {
+    if (historico != NULL) { // Verifica se o histórico não é nulo
+        for (int i = 0; i < historico->contador; i++) { // Percorre todos os turnos
+            free(historico->turno[i].role);             // Libera a memória do papel (role) do turno
+            free(historico->turno[i].text);             // Libera a memória do texto do turno
         }
         // Libera a memória do array de turnos
-        free(history->turns);
+        free(historico->turno);
         // Libera a memória do histórico em si
-        free(history);
+        free(historico);
     }
 }
 
 // Função para exibir o histórico da conversa
-void exibir_historico(ChatHistory* history) {
-    if (history != NULL && history->count > 0) {                                // Verifica se o histórico não é nulo e tem turnos
+void exibir_historico(HistoricoChat* historico) {
+    if (historico != NULL && historico->contador > 0) {                                // Verifica se o histórico não é nulo e tem turnos
         printf("\n----- Histórico da Conversa -----\n");
-        for (int i = 0; i < history->count; i++) {                              // Percorre todos os turnos do histórico
-            printf("%s: %s\n", history->turns[i].role, history->turns[i].text); // Exibe o papel (role) e o texto do turno
+        for (int i = 0; i < historico->contador; i++) {                                // Percorre todos os turnos do histórico
+            printf("%s: %s\n", historico->turno[i].role, historico->turno[i].text);    // Exibe o papel (role) e o texto do turno
         }
         printf("---------------------------------\n");
     }
 }
 
 // Função para obter dados do clima da API OpenWeather
-WeatherData obter_dados_clima(const char* cidade) {
-    WeatherData weather = {0}; // Inicializa a estrutura de dados do clima
-    weather.valid = 0;         // Marca como inválido inicialmente
+DataClima obter_dados_clima(const char* cidade) {
+    DataClima clima = {0};   // Inicializa a estrutura de dados do clima
+    clima.valid = 0;         // Marca como inválido inicialmente
 
     // Codifica a cidade para URL (resolve problema com espaços)
     char* cidade_encoded = url_encode(cidade); // Função que codifica a cidade para uso em URL
     if (!cidade_encoded) {                     // Se a codificação falhar
-        return weather;                        // Retorna a estrutura de clima inválida
+        return clima;                          // Retorna a estrutura de clima inválida
     }
 
     // Monta a URL da API OpenWeather
@@ -651,10 +649,10 @@ WeatherData obter_dados_clima(const char* cidade) {
     CURLcode res;              // Código de resultado da operação
     struct MemoryStruct chunk; // Estrutura para armazenar a resposta
 
-    chunk.memory = malloc(1); // Aloca um byte inicial para a memória
-    chunk.size = 0;           // Inicializa o tamanho como zero
+    chunk.memory = malloc(1);  // Aloca um byte inicial para a memória
+    chunk.size = 0;            // Inicializa o tamanho como zero
 
-    curl = curl_easy_init();  // Inicializa o cURL
+    curl = curl_easy_init();   // Inicializa o cURL
     if(curl) {                                                              // Verifica se a inicialização foi bem-sucedida
         curl_easy_setopt(curl, CURLOPT_URL, url);                           // Define a URL da requisição
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteMemoryCallback); // Define a função de callback para escrever os dados recebidos
@@ -680,15 +678,15 @@ WeatherData obter_dados_clima(const char* cidade) {
                     if (temp && cJSON_IsNumber(temp) && weather_item) {
                         cJSON *description = cJSON_GetObjectItemCaseSensitive(weather_item, "description"); // Obtém a descrição do clima
 
-                        weather.temperature = (float)cJSON_GetNumberValue(temp);                            // Converte a temperatura para float
-                        strncpy(weather.city, cJSON_GetStringValue(name), MAX_CITY_NAME - 1);               // Copia o nome da cidade
-                        weather.city[MAX_CITY_NAME - 1] = '\0';                                             // Garante terminação nula
+                        clima.temperatura = (float)cJSON_GetNumberValue(temp);                  // Converte a temperatura para float
+                        strncpy(clima.cidade, cJSON_GetStringValue(name), MAX_CITY_NAME - 1);   // Copia o nome da cidade
+                        clima.cidade[MAX_CITY_NAME - 1] = '\0';                                 // Garante terminação nula
 
                         if (description && cJSON_IsString(description)) { // Se a descrição foi encontrada e é string
-                            strncpy(weather.description, cJSON_GetStringValue(description), 99); // Copia a descrição
-                            weather.description[99] = '\0';                                       // Garante terminação nula
+                            strncpy(clima.description, cJSON_GetStringValue(description), 99); // Copia a descrição
+                            clima.description[99] = '\0';                                      // Garante terminação nula
                         }
-                        weather.valid = 1; // Marca os dados do clima como válidos
+                        clima.valid = 1; // Marca os dados do clima como válidos
                     }
                 }
                 cJSON_Delete(json); // Libera a memória do objeto cJSON
@@ -701,7 +699,7 @@ WeatherData obter_dados_clima(const char* cidade) {
     curl_free(cidade_encoded);
     free(chunk.memory);
 
-    return weather; // Retorna os dados do clima (pode ser inválido se não conseguiu obter os dados)
+    return clima; // Retorna os dados do clima (pode ser inválido se não conseguiu obter os dados)
 }
 
 // Função para codificar URL
