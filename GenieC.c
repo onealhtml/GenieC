@@ -43,7 +43,7 @@ typedef struct {
 typedef struct {
     MessageTurn* turns;  // Array de turnos da conversa
     int count;           // Número atual de turnos
-    int capacity;        // Capacidade máxima
+    int capacity;        // Capacidade do array de turnos
 } ChatHistory;
 
 // --- Prompt Base do Sistema ---
@@ -583,7 +583,13 @@ void adicionar_turno(ChatHistory* history, const char* role, const char* text) {
     // Verifica se o histórico precisa ser expandido
     if (history->count >= history->capacity) {
         // Aumenta a capacidade do histórico
-        int nova_capacidade = (history->capacity == 0) ? 2 : history->capacity * 2; // Se a capacidade for zero, define como 2, caso contrário dobra a capacidade atual
+        int nova_capacidade;
+
+        if (history->capacity == 0) // Se a capacidade atual é zero
+            nova_capacidade = 2;  // Define nova capacidade inicial como 2
+        else // Se já tem capacidade
+            nova_capacidade = history->capacity * 2; // Dobra a capacidade atual
+
         MessageTurn* novos_turnos = (MessageTurn*)realloc(history->turns, nova_capacidade * sizeof(MessageTurn)); // Aloca memória para os novos turnos com a nova capacidade
         if (novos_turnos == NULL) { // Se a alocação falhar
             fprintf(stderr, "Erro ao alocar memória para os turnos do histórico.\n"); // Exibe mensagem de erro
