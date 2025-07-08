@@ -28,9 +28,9 @@
 // --- Estrutura para dados do clima ---
 typedef struct {
     char cidade[MAX_CITY_NAME]; // Nome da cidade
-    float temperatura;        // Temperatura em Celsius
-    char description[100];    // Descrição do clima (ex: "ensolarado", "chuva")
-    int valid;                // Flag para indicar se os dados são válidos
+    float temperatura;          // Temperatura em Celsius
+    char description[100];      // Descrição do clima (ex: "ensolarado", "chuva")
+    int valid;                  // Flag para indicar se os dados são válidos
 } DataClima;
 
 // --- Estrutura para armazenar o histórico da conversa ---
@@ -41,9 +41,9 @@ typedef struct {
 
 // --- Estrutura para armazenar os turnos da conversa ---
 typedef struct {
-    TurnoMensagem* turno;  // Array de turnos da conversa
-    int contador;           // Número atual de turnos
-    int capacidade;        // Capacidade do array de turnos
+    TurnoMensagem* turno; // Array de turnos da conversa
+    int contador;         // Número atual de turnos
+    int capacidade;       // Capacidade do array de turnos
 } HistoricoChat;
 
 // --- Prompt Base do Sistema ---
@@ -66,11 +66,11 @@ typedef struct {
 
 
 // --- Declaração das Funções ---
-void mostrar_arte_inicial();                         // Função para mostrar a arte ASCII inicial
-DataClima obter_dados_clima(const char* cidade);   // Função para obter dados do clima da API OpenWeather
-char* url_encode(const char* str);                   // Função para codificar a URL (resolve problema com espaços)
+void mostrar_arte_inicial();                     // Função para mostrar a arte ASCII inicial
+DataClima obter_dados_clima(const char* cidade); // Função para obter dados do clima da API OpenWeather
+char* url_encode(const char* str);               // Função para codificar a URL (resolve problema com espaços)
 void menu_com_clima(DataClima clima);            // Função para exibir o menu com informações do clima
-void mostrar_ajuda();                                // Função para exibir ajuda e dicas
+void mostrar_ajuda();                            // Função para exibir ajuda e dicas
 char* criar_payload_json_com_historico(const char* prompt, HistoricoChat* historico, const char* cidade); // Função que cria o payload JSON com o histórico do chat
 char* extrair_texto_da_resposta(const char* resposta_json); // Função que extrai o texto da resposta JSON
 
@@ -93,7 +93,7 @@ char* fazer_requisicao_http(const char* url, const char* payload); // Função q
 int main(){
     setlocale(LC_ALL, "Portuguese_Brazil.utf8"); // Configura a localidade para português brasileiro
     system("chcp 65001"); // Configura o console para UTF-8 (Windows)
-    limpar_tela(); // Limpa a tela ao iniciar
+    limpar_tela();        // Limpa a tela ao iniciar
 
     // Mostra a arte ASCII inicial
     mostrar_arte_inicial();
