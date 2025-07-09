@@ -46,6 +46,12 @@ typedef struct {
     int capacidade;       // Capacidade do array de turnos
 } HistoricoChat;
 
+// --- Estrutura para armazenar a resposta da requisição HTTP (padrão cURL) ---
+struct MemoryStruct {
+    char *memory; // Ponteiro para armazenar os dados recebidos
+    size_t size;  // Tamanho atual dos dados armazenados
+};
+
 // --- Prompt Base do Sistema ---
 #define SYSTEM_PROMPT "Você é o GenieC, um assistente pessoal para responder dúvidas do dia a dia. Siga estas diretrizes:\n\n" \
 "COMUNICAÇÃO:\n" \
@@ -73,6 +79,9 @@ void menu_com_clima(DataClima clima);            // Função para exibir o menu 
 void mostrar_ajuda();                            // Função para exibir ajuda e dicas
 char* criar_payload_json_com_historico(const char* prompt, HistoricoChat* historico, const char* cidade); // Função que cria o payload JSON com o histórico do chat
 char* extrair_texto_da_resposta(const char* resposta_json); // Função que extrai o texto da resposta JSON
+static size_t WriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp); // Callback para armazenar a resposta (padrão cURL)
+char* fazer_requisicao_http(const char* url, const char* payload);                         // Função que faz a requisição HTTP usando cURL
+void creditos(); // Função para exibir os créditos do projeto
 
 // --- Funções de Histórico do Chat ---
 HistoricoChat* inicializar_chat_historico(); // Função para inicializar o histórico do chat
@@ -80,15 +89,6 @@ void adicionar_turno(HistoricoChat* historico, const char* role, const char* tex
 void liberar_historico_chat(HistoricoChat* historico); // Função para liberar a memória do histórico do chat
 void exibir_historico(HistoricoChat* historico);     // Função para exibir o histórico do chat
 void mostrar_loading();
-
-// --- Requisição HTTP ---
-struct MemoryStruct { // Estrutura para armazenar a resposta da requisição HTTP (padrão cURL)
-    char *memory; // Ponteiro para armazenar os dados recebidos
-    size_t size;  // Tamanho atual dos dados armazenados
-};
-
-static size_t WriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp); // Callback para armazenar a resposta (padrão cURL)
-char* fazer_requisicao_http(const char* url, const char* payload); // Função que faz a requisição HTTP usando cURL
 
 int main(){
     setlocale(LC_ALL, "Portuguese_Brazil.utf8"); // Configura a localidade para português brasileiro
@@ -194,9 +194,9 @@ int main(){
     // Libera o histórico antes de sair
     liberar_historico_chat(chat_historico);
 
-    printf("\nFinalizando o programa...\n"); // Exibe mensagem de finalização
-    dormir(2000);                            // Pausa de 2 segundos antes de encerrar
-    return 0;                                // Encerra o programa com sucesso
+    creditos(); // Exibe os créditos do projeto
+
+    return 0;   // Retorna 0 para indicar que o programa terminou com sucesso
 }
 
 // ==============================================================================
@@ -261,7 +261,7 @@ void menu_com_clima(DataClima clima) {
     printf("\n");
     printf("\033[32m"); // Verde para dicas
     printf("💡 \033[1mDicas:\033[0m\033[32m Seja específico em suas perguntas para obter melhores respostas!\n");
-    printf("🌟 \033[1mExemplo:\033[0m\033[32m \"Qual é a previsão do tempo para minha cidade hoje?\"\n");
+    printf("🌟 \033[1mExemplo:\033[0m\033[32m \"Qual a história de minha cidade?\"\n");
     printf("\033[0m"); // Reset cor
     printf("\n");
 }
@@ -619,13 +619,14 @@ void liberar_historico_chat(HistoricoChat* historico) {
 
 // Função para exibir o histórico da conversa
 void exibir_historico(HistoricoChat* historico) {
-    if (historico != NULL && historico->contador > 0) {                                // Verifica se o histórico não é nulo e tem turnos
+    if (historico != NULL && historico->contador > 0) {                             // Verifica se o histórico não é nulo e tem turnos
         printf("\n----- Histórico da Conversa -----\n");
-        for (int i = 0; i < historico->contador; i++) {                                // Percorre todos os turnos do histórico
-            printf("%s: %s\n", historico->turno[i].role, historico->turno[i].text);    // Exibe o papel (role) e o texto do turno
+        for (int i = 0; i < historico->contador; i++) {                             // Percorre todos os turnos do histórico
+            printf("%s: %s\n", historico->turno[i].role, historico->turno[i].text); // Exibe o papel (role) e o texto do turno
         }
         printf("---------------------------------\n");
-    }
+    } else                                        // Se o histórico é nulo ou não tem turnos
+        printf("\nNenhum histórico disponível.\n"); // Exibe mensagem informando que não há histórico
 }
 
 // Função para obter dados do clima da API OpenWeather
@@ -641,7 +642,7 @@ DataClima obter_dados_clima(const char* cidade) {
 
     // Monta a URL da API OpenWeather
     char url[512];                             // Buffer para armazenar a URL completa
-    snprintf(url, sizeof(url), "http://api.openweathermap.org/data/2.5/weather?q=%s&appid=%s&units=metric&lang=pt_br",
+    snprintf(url, sizeof(url), "https://api.openweathermap.org/data/2.5/weather?q=%s&appid=%s&units=metric&lang=pt_br",
              cidade_encoded, API_KEY_WEATHER); // Concatena a cidade codificada e a chave da API na URL
 
     // Faz a requisição HTTP
@@ -708,4 +709,41 @@ char* url_encode(const char* str) {
     char *encoded = curl_easy_escape(curl, str, 0); // Codifica a string para URL
     curl_easy_cleanup(curl);                        // Libera o manipulador cURL
     return encoded;                                 // Retorna a string codificada (ou NULL se falhar)
+}
+
+// Função para exibir os créditos do programa
+void creditos() {
+    limpar_tela(); // Limpa a tela antes de mostrar os créditos
+
+    printf("\033[36m"); // Cyan para as bordas
+    printf("╔═══════════════════════════════════════════════════════════════════════════════╗\n");
+    printf("║                                                                               ║\n");
+    printf("║                            🏆 GenieC - Créditos 🏆                            ║\n");
+    printf("║                                                                               ║\n");
+    printf("╚═══════════════════════════════════════════════════════════════════════════════╝\n");
+    printf("\033[0m"); // Reset cor
+
+    printf("\n");
+    printf("\033[1;32m💻 Desenvolvido por:\033[0m\n");
+    printf("   \033[37m• Lorenzo Farias\033[0m\n");
+    printf("   \033[37m• Bernardo Soares Nunes\033[0m\n");
+    printf("   \033[37m• Pedro Cabral Buchaim\033[0m\n\n");
+
+    printf("\033[1;34m🎓 Instituição:\033[0m\n");
+    printf("   \033[37mUniversidade de Santa Cruz do Sul (UNISC)\033[0m\n\n");
+
+    printf("\033[1;33m📚 Disciplina:\033[0m\n");
+    printf("   \033[37mProgramação para Resolução de Problemas\033[0m\n\n");
+
+    printf("\033[1;35m👩‍🏫 Professora:\033[0m\n");
+    printf("   \033[37mProfa. Dra. Daniela Bagatini\033[0m\n\n");
+
+    printf("\033[36m"); // Cyan para a borda inferior
+    printf("────────────────────────────────────────────────────────────────────────────────\n");
+    printf("\033[0m"); // Reset cor
+
+    printf("\n\033[1;32m🤖 Obrigado por usar o GenieC! 🤖\033[0m\n");
+    printf("\033[33mPressione Enter para sair...\033[0m");
+
+    getchar(); // Pausa para o usuário ler a mensagem
 }
