@@ -84,7 +84,6 @@ void creditos(); // Função para exibir os créditos do projeto
 DataClima obter_dados_clima(const char* cidade); // Função para obter dados do clima da API OpenWeather
 char* url_encode(const char* str);               // Função para codificar a URL (resolve problema com espaços)
 
-
 // --- Funções de Histórico do Chat ---
 HistoricoChat* inicializar_chat_historico(); // Função para inicializar o histórico do chat
 void adicionar_turno(HistoricoChat* historico, const char* role, const char* text); // Função para adicionar um turno ao histórico do chat
@@ -111,6 +110,7 @@ int main(){
     DataClima clima = obter_dados_clima(cidade);                     // Chama a função para obter os dados do clima
 
     limpar_tela();         // Limpa a tela
+
     menu_com_clima(clima); // Exibe o menu com informações do clima
 
     // Inicializa o histórico do chat
@@ -337,7 +337,7 @@ char* criar_payload_json_com_historico(const char* prompt, HistoricoChat* histor
     cJSON *contents_array = cJSON_CreateArray();
 
     // Se existe histórico, adiciona todos os turnos exceto o último (que é a pergunta atual)
-    if (historico != NULL && historico->contador > 1) {        // Verifica se há histórico e se tem mais de um turno
+    if (historico != NULL && historico->contador > 1) {      // Verifica se há histórico e se tem mais de um turno
         for (int i = 0; i < historico->contador - 1; i++) {  // Percorre todos os turnos, exceto o último
             cJSON *content_item = cJSON_CreateObject(); // Cria um objeto para o conteúdo do turno
             cJSON *parts_array = cJSON_CreateArray();   // Cria um array para as partes do turno
