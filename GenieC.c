@@ -70,11 +70,8 @@ struct MemoryStruct {
 "- Evite listas longas, use apenas o essencial\n" \
 "- Forneça informações práticas e úteis de forma resumida"
 
-
 // --- Declaração das Funções ---
 void mostrar_arte_inicial();                     // Função para mostrar a arte ASCII inicial
-DataClima obter_dados_clima(const char* cidade); // Função para obter dados do clima da API OpenWeather
-char* url_encode(const char* str);               // Função para codificar a URL (resolve problema com espaços)
 void menu_com_clima(DataClima clima);            // Função para exibir o menu com informações do clima
 void mostrar_ajuda();                            // Função para exibir ajuda e dicas
 char* criar_payload_json_com_historico(const char* prompt, HistoricoChat* historico, const char* cidade); // Função que cria o payload JSON com o histórico do chat
@@ -82,6 +79,11 @@ char* extrair_texto_da_resposta(const char* resposta_json); // Função que extr
 static size_t WriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp); // Callback para armazenar a resposta (padrão cURL)
 char* fazer_requisicao_http(const char* url, const char* payload);                         // Função que faz a requisição HTTP usando cURL
 void creditos(); // Função para exibir os créditos do projeto
+
+// --- Funções de clima ---
+DataClima obter_dados_clima(const char* cidade); // Função para obter dados do clima da API OpenWeather
+char* url_encode(const char* str);               // Função para codificar a URL (resolve problema com espaços)
+
 
 // --- Funções de Histórico do Chat ---
 HistoricoChat* inicializar_chat_historico(); // Função para inicializar o histórico do chat
@@ -106,13 +108,13 @@ int main(){
 
     // Obtém dados do clima
     printf("\n\033[33m🌤️ Obtendo informações do clima...\033[0m\n"); // Exibe mensagem de carregamento
-    DataClima clima = obter_dados_clima(cidade);                   // Chama a função para obter os dados do clima
+    DataClima clima = obter_dados_clima(cidade);                     // Chama a função para obter os dados do clima
 
     limpar_tela();         // Limpa a tela
     menu_com_clima(clima); // Exibe o menu com informações do clima
 
     // Inicializa o histórico do chat
-    HistoricoChat* chat_historico = inicializar_chat_historico();        // Função para inicializar o histórico do chat
+    HistoricoChat* chat_historico = inicializar_chat_historico();      // Função para inicializar o histórico do chat
     if (chat_historico == NULL) {                                      // Se a inicialização falhar
         fprintf(stderr, "Erro ao inicializar o histórico do chat.\n"); // Exibe mensagem de erro
         return 1;                                                      // Encerra o programa com erro
@@ -131,7 +133,7 @@ int main(){
         // Comando para limpar histórico
         if (strcmp(minha_pergunta, "limpar") == 0) {                // Se o usuário digitar "limpar"
             limpar_tela();                                          // Limpa a tela
-            liberar_historico_chat(chat_historico);                   // Chama a função que libera o histórico atual
+            liberar_historico_chat(chat_historico);                 // Chama a função que libera o histórico atual
             chat_historico = inicializar_chat_historico();          // Chama a função que reinicializa o histórico do chat
             menu_com_clima(clima);                                  // Exibe o menu novamente com as informações do clima
             printf("Histórico limpo! Nova conversa iniciada.\n\n"); // Exibe mensagem de confirmação
