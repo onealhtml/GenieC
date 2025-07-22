@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-project(PPRP C)
+project(GenieC C)
 
 set(CMAKE_C_STANDARD 99)
 
@@ -12,8 +12,8 @@ find_package(cJSON REQUIRED)
 
 
 # Primeiro definimos o executável
-add_executable(PPRP GenieC.c)
+add_executable(GenieC GenieC.c)
 
 # Depois vinculamos as bibliotecas
-target_link_libraries(PPRP PRIVATE CURL::libcurl)
-target_link_libraries(PPRP PRIVATE cjson)
+target_link_libraries(GenieC PRIVATE CURL::libcurl)
+target_link_libraries(GenieC PRIVATE cjson)
