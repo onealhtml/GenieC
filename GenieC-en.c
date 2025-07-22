@@ -397,9 +397,9 @@ char* extract_text_from_response(const char* resposta_json) {
     cJSON *root = cJSON_Parse(resposta_json);
 
     // Check if parsing was successful
-    if (root == NULL) {                                             // If parsing fails
-        fprintf(stderr, "Error parsing JSON response.\n");   // Display error message
-        return NULL;                                                // Return NULL indicating failure
+    if (root == NULL) {                                    // If parsing fails
+        fprintf(stderr, "Error parsing JSON response.\n"); // Display error message
+        return NULL;                                       // Return NULL indicating failure
     }
 
     // Step 2: Declare variables to navigate JSON structure
@@ -586,7 +586,7 @@ void add_turn(HistoricoChat* historico, const char* role, const char* text) {
         TurnoMensagem* new_turns = (TurnoMensagem*)realloc(historico->turno, new_capacity * sizeof(TurnoMensagem)); // Allocate memory for new turns with new capacity
         if (new_turns == NULL) { // If allocation fails
             fprintf(stderr, "Error allocating memory for history turns.\n"); // Display error message
-            return;                 // Return without adding turn
+            return;              // Return without adding turn
         }
         historico->turno = new_turns;         // Update pointer to turns with new allocated memory
         historico->capacidade = new_capacity; // Update history capacity
