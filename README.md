@@ -1,93 +1,93 @@
-# GenieC - Cliente Gemini em C
-Um assistente inteligente em linguagem C que integra a API do Google Gemini AI com funcionalidades avançadas de chat e informações climáticas em tempo real.
+# GenieC - Gemini Client in C
+An intelligent assistant in C language that integrates Google Gemini AI API with advanced chat features and real-time weather information.
 
-## 📋 Funcionalidades
+## 📋 Features
 
-### 🤖 Assistente AI
-- Interface de linha de comando colorida e intuitiva
-- Comunicação com a API do Google Gemini usando cURL
-- **Histórico de conversa**: Mantém o contexto entre perguntas
-- **Pesquisa em tempo real**: Integração com Google Search via API Gemini
-- Prompt de sistema personalizado para respostas em português brasileiro
+### 🤖 AI Assistant
+- Colorful and intuitive command-line interface
+- Communication with Google Gemini API using cURL
+- **Conversation history**: Maintains context between questions
+- **Real-time search**: Google Search integration via Gemini API
+- Custom system prompt for responses in English
 
-### 🌤️ Informações Climáticas
-- **Dados meteorológicos em tempo real** via API OpenWeather
-- Exibição de temperatura e condições climáticas da cidade do usuário
-- Codificação automática de nomes de cidades para URLs
+### 🌤️ Weather Information
+- **Real-time weather data** via OpenWeather API
+- Display of temperature and weather conditions for user's city
+- Automatic encoding of city names for URLs
 
-### 💬 Comandos Interativos
-- `limpar` - Limpa o histórico da conversa e reinicia
-- `historico` - Exibe todo o histórico da conversa atual
-- `help` - Mostra ajuda detalhada e dicas de uso
-- `0` - Sair do programa
+### 💬 Interactive Commands
+- `clear` - Clears conversation history and restarts
+- `history` - Displays complete current conversation history
+- `help` - Shows detailed help and usage tips
+- `0` - Exit the program
 
-### 🎨 Interface Avançada
-- Arte ASCII colorida do GenieC
-- Cores diferenciadas para melhor experiência do usuário
-- Animação de loading durante consultas à AI
-- Menu principal com informações do clima
+### 🎨 Advanced Interface
+- Colorful GenieC ASCII art
+- Different colors for better user experience
+- Loading animation during AI queries
+- Main menu with weather information
 
-## 🛠️ Pré-requisitos
+## 🛠️ Prerequisites
 
-- **Compilador C**: 
+- **C Compiler**: 
   - MinGW-w64
   - GCC
   - Visual Studio
-- **CMake** (versão 3.21 ou superior)
-- **Gerenciador de pacotes**:
+- **CMake** (version 3.21 or higher)
+- **Package Manager**:
   - MSYS2/pacman
   - vcpkg
-- **Bibliotecas**:
-  - cURL (para requisições HTTP)
-  - cJSON (para parsing de JSON)
+- **Libraries**:
+  - cURL (for HTTP requests)
+  - cJSON (for JSON parsing)
 
-## 🔑 Configuração das API Keys
+## 🔑 API Keys Configuration
 
-**IMPORTANTE**: Para usar este projeto, você precisa configurar duas chaves de API.
+**IMPORTANT**: To use this project, you need to configure two API keys.
 
-### 1. API Key do Google Gemini
-1. Acesse o [Google AI Studio](https://aistudio.google.com/app/apikey)
-2. Faça login com sua conta Google
-3. Clique em "Create API Key"
-4. Copie a chave gerada
+### 1. Google Gemini API Key
+1. Access [Google AI Studio](https://aistudio.google.com/app/apikey)
+2. Log in with your Google account
+3. Click "Create API Key"
+4. Copy the generated key
 
-### 2. API Key do OpenWeather
-1. Acesse o [OpenWeatherMap](https://openweathermap.org/api)
-2. Crie uma conta gratuita
-3. Obtenha sua API key
+### 2. OpenWeather API Key
+1. Access [OpenWeatherMap](https://openweathermap.org/api)
+2. Create a free account
+3. Get your API key
 
-### 3. Configurar as API Keys no projeto
-Abra o arquivo `api_key.example.h`, renomeie para `api_key.h` e configure ambas as chaves:
+### 3. Configure API Keys in the project
+Open the `api_key.example.h` file, rename it to `api_key.h` and configure both keys:
 
 ```c
 #ifndef API_KEY_H
 #define API_KEY_H
 
-// API Key do Google Gemini
-#define API_KEY "SUA_API_KEY_GEMINI_AQUI"
+// Google Gemini API Key
+#define API_KEY "YOUR_GEMINI_API_KEY_HERE"
 
-// API Key do OpenWeather
-#define API_KEY_WEATHER "SUA_API_KEY_OPENWEATHER_AQUI"
+// OpenWeather API Key
+#define API_KEY_WEATHER "YOUR_OPENWEATHER_API_KEY_HERE"
 
 #endif
 ```
 
-## 💻 Como Usar
+## 💻 How to Use
 
-### Primeira Execução
-1. Execute o programa
-2. Digite o nome da sua cidade para obter informações climáticas
-3. O GenieC exibirá o menu principal com dados do clima
+### First Run
+1. Run the program
+2. Enter your city name to get weather information
+3. GenieC will display the main menu with weather data
 
-### Interagindo com o Assistente
-- **Faça perguntas naturais**: "Como fazer um bolo de chocolate?"
-- **Use comandos especiais**: Digite `help` para ver todas as opções
-- **Mantenha contexto**: O GenieC lembra das conversas anteriores
-- **Pesquise informações atuais**: "Qual é a notícia mais recente sobre tecnologia?"
+### Interacting with the Assistant
+- **Ask natural questions**: "How to make a chocolate cake?"
+- **Use special commands**: Type `help` to see all options
+- **Maintain context**: GenieC remembers previous conversations
+- **Search current information**: "What's the latest news about technology?"
 
-### Exemplo de uso:
+### Usage example:
 ```
-🌍 Digite o nome da sua cidade para obter informações do clima: Santa Cruz do Sul
+🌍 Enter your city name to get weather information: Santa Cruz do Sul
 
 ╔═════════════════════════════════════════════════════════════════════════════╗
 ║                ██████╗ ███████╗███╗   ██╗██╗███████╗ ██████╗                ║
@@ -98,89 +98,84 @@ Abra o arquivo `api_key.example.h`, renomeie para `api_key.h` e configure ambas 
 ║                ╚═════╝ ╚══════╝╚═╝  ╚═══╝╚═╝╚══════╝ ╚═════╝                ║
 ╚═════════════════════════════════════════════════════════════════════════════╝
 
-🤖 Bem-vindo ao GenieC - Seu Assistente Inteligente Gemini! 🤖
+🤖 Welcome to GenieC - Your Intelligent Gemini Assistant! 🤖
 
-🌤️ Clima atual em Santa Cruz do Sul: 22.5°C - parcialmente nublado
+🌤️ Current weather in Santa Cruz do Sul: 22.5°C - partly cloudy
 
-Você: Quem é o atual Papa?
-GenieC: O atual Papa da Igreja Católica é Leão XIV. Ele foi eleito em 8 de maio de 2025, sucedendo o Papa Francisco.
+You: Who is the current Pope?
+GenieC: The current Pope of the Catholic Church is Leo XIV. He was elected on May 8, 2025, succeeding Pope Francis.
 
-Você: 0
-Finalizando o programa...
+You: 0
+Terminating the program...
 ```
 
-## 📁 Estrutura do Projeto
+## 📁 Project Structure
 
 ```
 GenieC/
-├── GenieC.c          # Código principal
-├── api_key.h         # Arquivo de configuração das API keys
-├── limpar_tela.h     # Função para limpar a tela
-├── dormir.h          # Função para pausas
-├── CMakeLists.txt    # Configuração do CMake
-├── build/            # Diretório de compilação
-│   └── GenieC.exe    # Executável gerado
-└── README.md         # Este arquivo
+├── GenieC-en.c       # Main code (English version)
+├── api_key.h         # API keys configuration file
+├── limpar_tela.h     # Screen clearing function
+├── dormir.h          # Sleep function
+├── CMakeLists.txt    # CMake configuration
+├── build/            # Build directory
+│   └── GenieC.exe    # Generated executable
+└── README.md         # This file
 ```
 
-## 🔧 Principais Funções
+## 🔧 Main Functions
 
-### Core do Sistema
-- `main()`: Loop principal do programa
-- `mostrar_arte_inicial()`: Exibe a arte ASCII do GenieC
-- `menu_com_clima()`: Mostra o menu principal com informações climáticas
-- `mostrar_ajuda()`: Exibe ajuda detalhada e dicas
+### System Core
+- `main()`: Main program loop
+- `show_initial_art()`: Displays GenieC ASCII art
+- `menu_with_weather()`: Shows main menu with weather information
+- `show_help()`: Displays detailed help and tips
+- `credits()`: Displays project credits
 
-### Comunicação com APIs
-- `fazer_requisicao_http()`: Realiza requisições HTTP usando cURL
-- `criar_payload_json_com_historico()`: Cria payload JSON com histórico da conversa
-- `extrair_texto_da_resposta()`: Extrai texto da resposta JSON do Gemini
-- `obter_dados_clima()`: Obtém dados climáticos via API OpenWeather
+### API Communication
+- `make_http_request()`: Performs HTTP requests using cURL
+- `create_json_payload_with_history()`: Creates JSON payload with conversation history
+- `extract_text_from_response()`: Extracts text from Gemini JSON response
+- `get_weather_data()`: Gets weather data via OpenWeather API
 
-### Gerenciamento de Histórico
-- `inicializar_chat_historico()`: Inicializa o sistema de histórico
-- `adicionar_turno()`: Adiciona nova mensagem ao histórico
-- `exibir_historico()`: Mostra o histórico completo da conversa
-- `liberar_chat_history()`: Libera memória do histórico
+### History Management
+- `initialize_chat_history()`: Initializes history system
+- `add_turn()`: Adds new message to history
+- `display_history()`: Shows complete conversation history
+- `free_chat_history()`: Frees history memory
 
-### Utilitários
-- `url_encode()`: Codifica strings para URLs
-- `mostrar_loading()`: Exibe animação de carregamento
-- `WriteMemoryCallback()`: Callback para armazenar respostas HTTP
+### Utilities
+- `url_encode()`: Encodes strings for URLs
+- `show_loading()`: Displays loading animation
+- `WriteMemoryCallback()`: Callback to store HTTP responses
 
-## 🌟 Recursos Avançados
+## 🌟 Advanced Features
 
-### Sistema de Histórico Inteligente
-- Mantém contexto completo da conversa
-- Permite referências a mensagens anteriores
-- Gerenciamento automático de memória
-- Limite configurável de turnos (50 por padrão)
+### Intelligent History System
+- Maintains complete conversation context
+- Allows references to previous messages
+- Automatic memory management
+- Configurable turn limit (50 by default)
 
-### Integração com Google Search
-- Pesquisa em tempo real via API Gemini
-- Respostas com informações atualizadas
-- Suporte a consultas específicas de localização
+### Google Search Integration
+- Real-time search via Gemini API
+- Responses with updated information
+- Support for location-specific queries
 
-### Prompt de Sistema Personalizado
-- Respostas em português brasileiro
-- Instruções específicas para o contexto brasileiro
-- Diretrizes para respostas concisas e úteis
+### Custom System Prompt
+- Responses in English
+- Specific instructions for international context
+- Guidelines for concise and useful responses
 
-## 📄 Licença
+## 📄 License
 
-Este projeto é para fins educacionais. Use responsavelmente e respeite os termos de uso das APIs do Google Gemini e OpenWeather.
+This project is for educational purposes. Use responsibly and respect the terms of use of Google Gemini and OpenWeather APIs.
 
-## 👥 Créditos
+## 👥 Credits
 
-Este projeto foi desenvolvido por:
+This project was developed by:
 - [Lorenzo Farias](https://github.com/onealhtml)
-- [Bernardo Soares Nunes](https://github.com/besoaresn)
-- [Pedro Cabral Buchaim](https://github.com/Tinpack)
 
-**Universidade de Santa Cruz do Sul (UNISC)**  
-**Disciplina**: Programação Para Resolução de Problemas  
-**Professora Responsável**: Profa. Dra. Daniela Bagatini
+## ⚠️ Legal Notice
 
-## ⚠️ Aviso Legal
-
-Este projeto utiliza as APIs do Google Gemini e OpenWeather. Certifique-se de cumprir os termos de uso de ambas as APIs e use-as de forma responsável. Os autores não se responsabilizam pelo uso inadequado das APIs ou por possíveis custos decorrentes do uso excessivo.
+This project uses Google Gemini and OpenWeather APIs. Make sure to comply with the terms of use of both APIs and use them responsibly. The authors are not responsible for improper use of the APIs or possible costs arising from excessive use.
