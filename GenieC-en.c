@@ -75,6 +75,7 @@ void credits(); // Function to display project credits
 // --- Weather functions ---
 DataClima get_weather_data(const char* cidade);  // Function to get weather data from OpenWeather API
 char* url_encode(const char* str);               // Function to encode URL (solves space problem)
+const char* get_weather_emoji(const char* description); // Function to get weather emoji based on description
 
 // --- Chat History Functions ---
 HistoricoChat* initialize_chat_history(); // Function to initialize chat history
@@ -225,7 +226,7 @@ void menu_with_weather(DataClima clima) {
     if(clima.valid) {
         printf("\n");
         printf("\033[1;34m"); // Strong blue for weather
-        printf("🌤️  Current weather in %s: %.1f°C - %s\n", clima.cidade, clima.temperatura, clima.description); // Display city, temperature and weather description
+        printf("%s  Current weather in %s: %.1f°C - %s\n", get_weather_emoji(clima.description), clima.cidade, clima.temperatura, clima.description); // Display emoji, city, temperature and weather description
         printf("\033[0m"); // Reset color
     } else {
         printf("\n");
@@ -704,6 +705,19 @@ char* url_encode(const char* str) {
     char *encoded = curl_easy_escape(curl, str, 0); // Encode string for URL
     curl_easy_cleanup(curl);                        // Free cURL handler
     return encoded;                                 // Return encoded string (or NULL if fails)
+}
+
+// Function to get weather emoji based on description
+const char* get_weather_emoji(const char* description) {
+    // Check if description contains certain keywords and return corresponding emoji
+    if (strstr(description, "clear") != NULL) return "☀️";   // Clear sky
+    if (strstr(description, "cloud") != NULL) return "☁️";   // Cloudy
+    if (strstr(description, "rain") != NULL) return "🌧️";    // Rain
+    if (strstr(description, "snow") != NULL) return "❄️";    // Snow
+    if (strstr(description, "storm") != NULL) return "⛈️";   // Storm
+    if (strstr(description, "fog") != NULL) return "🌫️";     // Fog
+
+    return "🌈"; // Default emoji (e.g., for unclear conditions) - Rainbow
 }
 
 // Function to display program credits
