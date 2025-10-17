@@ -6,6 +6,33 @@
 #include "clima.h"
 #include "../dormir.h"
 #include <stdio.h>
+#include <string.h>
+
+// Função para obter o ícone apropriado baseado na descrição do clima
+const char* obter_icone_clima(const char* description) {
+    if (!description) return "🌡️";
+
+    // Converte para lowercase para comparação (simplificada)
+    char desc_lower[100];
+    strncpy(desc_lower, description, sizeof(desc_lower) - 1);
+    desc_lower[sizeof(desc_lower) - 1] = '\0';
+
+    // Mapeia descrições para ícones
+    if (strstr(desc_lower, "limpo") || strstr(desc_lower, "céu limpo")) return "☀️";
+    if (strstr(desc_lower, "ensolarado")) return "☀️";
+    if (strstr(desc_lower, "poucas nuvens")) return "🌤️";
+    if (strstr(desc_lower, "nuvens dispersas")) return "⛅";
+    if (strstr(desc_lower, "nublado")) return "☁️";
+    if (strstr(desc_lower, "nuvens")) return "☁️";
+    if (strstr(desc_lower, "chuva")) return "🌧️";
+    if (strstr(desc_lower, "chuvisco")) return "🌦️";
+    if (strstr(desc_lower, "trovoada") || strstr(desc_lower, "tempestade")) return "⛈️";
+    if (strstr(desc_lower, "neve")) return "❄️";
+    if (strstr(desc_lower, "neblina") || strstr(desc_lower, "névoa")) return "🌫️";
+    if (strstr(desc_lower, "nevoeiro")) return "🌫️";
+
+    return "🌡️"; // Ícone padrão
+}
 
 // Mostra a arte ASCII inicial
 void mostrar_arte_inicial() {
@@ -33,9 +60,10 @@ void menu_com_clima(DataClima clima) {
     mostrar_arte_inicial();
 
     if (clima.valid) {
+        const char* icone = obter_icone_clima(clima.description);
         printf("\n\033[1;34m");
-        printf("🌤️  Clima atual em %s: %.1f°C - %s\n",
-               clima.cidade, clima.temperatura, clima.description);
+        printf("%s Clima atual em %s: %.1f°C - %s\n",
+               icone, clima.cidade, clima.temperatura, clima.description);
         printf("\033[0m");
     } else {
         printf("\n\033[1;31m");

@@ -76,6 +76,8 @@ int main(){
         // Comando para exibir histórico
         if (strcmp(minha_pergunta, "historico") == 0) { // Se o usuário digitar "historico"
             exibir_historico(chat_historico);           // Chama a função que exibe o histórico do chat
+            limpar_tela();                              // Limpa a tela após voltar
+            menu_com_clima(clima);                      // Exibe o menu novamente
             continue;                                   // Volta para o início do loop para nova pergunta
         }
 
@@ -149,4 +151,3 @@ void creditos() {
 
     getchar(); // Pausa para o usuário ler a mensagem
 }
-

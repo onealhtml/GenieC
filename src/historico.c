@@ -4,6 +4,7 @@
 
 #include "historico.h"
 #include "config.h"
+#include "../limpar_tela.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -78,28 +79,40 @@ void liberar_historico_chat(HistoricoChat* historico) {
     }
 }
 
-// Exibe o histórico completo
+// Exibe o histórico completo em tela separada
 void exibir_historico(HistoricoChat* historico) {
+    // Limpa a tela para mostrar apenas o histórico
+    limpar_tela();
+
     if (historico != NULL && historico->contador > 0) {
         printf("\n");
-        printf("\033[36m╔═══════════════════════════════════════════════════════════╗\033[0m\n");
-        printf("\033[36m║                 📜 HISTÓRICO DA CONVERSA                  ║\033[0m\n");
-        printf("\033[36m╚═══════════════════════════════════════════════════════════╝\033[0m\n\n");
+        printf("\033[36m╔═══════════════════════════════════════════════════════════════════════════════╗\033[0m\n");
+        printf("\033[36m║                           📜 HISTÓRICO DA CONVERSA                            ║\033[0m\n");
+        printf("\033[36m╚═══════════════════════════════════════════════════════════════════════════════╝\033[0m\n\n");
 
         for (int i = 0; i < historico->contador; i++) {
             if (strcmp(historico->turno[i].role, "user") == 0) {
-                printf("\033[1;32m👤 Você:\033[0m %s\n", historico->turno[i].text);
+                printf("\033[1;32m👤 Você:\033[0m\n");
+                printf("   %s\n\n", historico->turno[i].text);
             } else {
-                printf("\033[1;36m🤖 GenieC:\033[0m %s\n", historico->turno[i].text);
+                printf("\033[1;36m🤖 GenieC:\033[0m\n");
+                printf("   %s\n\n", historico->turno[i].text);
             }
-            printf("\n");
         }
 
-        printf("\033[33m─────────────────────────────────────────────────────────────\033[0m\n");
-        printf("\033[33mTotal de interações: %d (máximo: %d)\033[0m\n",
+        printf("\033[33m═══════════════════════════════════════════════════════════════════════════════\033[0m\n");
+        printf("\033[33mTotal de interações: %d (máximo: %d)\033[0m\n\n",
                historico->contador, MAX_HISTORY_TURNS);
     } else {
-        printf("\n\033[33m📭 Nenhum histórico disponível.\033[0m\n");
+        printf("\n");
+        printf("\033[36m╔═══════════════════════════════════════════════════════════════════════════════╗\033[0m\n");
+        printf("\033[36m║                          📜 HISTÓRICO DA CONVERSA                             ║\033[0m\n");
+        printf("\033[36m╚═══════════════════════════════════════════════════════════════════════════════╝\033[0m\n\n");
+        printf("\033[33m📭 Nenhum histórico disponível ainda.\033[0m\n\n");
+        printf("\033[33m═══════════════════════════════════════════════════════════════════════════════\033[0m\n\n");
     }
-}
 
+    // Aguarda o usuário pressionar Enter para voltar
+    printf("\033[1;37m⏎ Pressione Enter para voltar ao chat...\033[0m");
+    getchar(); // Consome o Enter
+}
