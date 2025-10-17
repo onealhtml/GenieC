@@ -3,7 +3,6 @@
 
 // Configurações de API
 #define MODELO_GEMINI "gemini-2.5-flash-lite"
-#define API_BASE_URL "https://generativelanguage.googleapis.com/v1beta/models/" MODELO_GEMINI ":generateContent?key="
 
 // Configurações de limites
 #define MAX_PROMPT_SIZE 10000
@@ -38,4 +37,3 @@
 "- Forneça informações práticas e úteis de forma resumida"
 
 #endif // CONFIG_H
-

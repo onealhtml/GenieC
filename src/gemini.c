@@ -5,7 +5,7 @@
 #include "gemini.h"
 #include "http_utils.h"
 #include "config.h"
-#include "../api_key.h"
+#include "env_loader.h"
 #include <cjson/cJSON.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -119,10 +119,19 @@ char* consultar_gemini(const char* pergunta, HistoricoChat* historico, const cha
         return NULL;
     }
 
+    // Obtém a API key das variáveis de ambiente
+    const char* api_key = obter_env("GEMINI_API_KEY");
+    if (!api_key) {
+        fprintf(stderr, "Erro: API key do Gemini não encontrada.\n");
+        free(payload);
+        return NULL;
+    }
+
     // Monta a URL
     char url_completa[512];
-    strcpy(url_completa, API_BASE_URL);
-    strcat(url_completa, API_KEY);
+    snprintf(url_completa, sizeof(url_completa),
+             "https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s",
+             MODELO_GEMINI, api_key);
 
     // Faz a requisição com retry
     char* resposta_bruta = fazer_requisicao_http_com_retry(url_completa, payload, MAX_RETRIES);
@@ -143,4 +152,3 @@ char* consultar_gemini(const char* pergunta, HistoricoChat* historico, const cha
 
     return texto_final;
 }
-

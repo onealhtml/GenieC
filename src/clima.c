@@ -5,7 +5,7 @@
 #include "clima.h"
 #include "http_utils.h"
 #include "config.h"
-#include "../api_key.h"
+#include "env_loader.h"
 #include <curl/curl.h>
 #include <cjson/cJSON.h>
 #include <stdio.h>
@@ -17,6 +17,13 @@ DataClima obter_dados_clima(const char* cidade) {
     DataClima clima = {0};
     clima.valid = 0;
 
+    // Obtém a API key das variáveis de ambiente
+    const char* api_key = obter_env("OPENWEATHER_API_KEY");
+    if (!api_key) {
+        fprintf(stderr, "Erro: API key do OpenWeather não encontrada.\n");
+        return clima;
+    }
+
     // Codifica a cidade para URL
     char* cidade_encoded = url_encode(cidade);
     if (!cidade_encoded) {
@@ -27,7 +34,7 @@ DataClima obter_dados_clima(const char* cidade) {
     char url[512];
     snprintf(url, sizeof(url),
              "https://api.openweathermap.org/data/2.5/weather?q=%s&appid=%s&units=metric&lang=pt_br",
-             cidade_encoded, API_KEY_WEATHER);
+             cidade_encoded, api_key);
 
     // Faz a requisição HTTP
     CURL *curl;

@@ -18,6 +18,7 @@ set(SOURCES
         src/clima.c
         src/gemini.c
         src/ui.c
+        src/env_loader.c
 )
 
 # Cria o executável
@@ -27,6 +28,7 @@ add_executable(GenieC ${SOURCES})
 target_link_libraries(GenieC PRIVATE
         CURL::libcurl
         cjson
+        dotenv-s
 )
 
 # Adiciona diretórios de include

@@ -15,6 +15,7 @@
 #include "src/clima.h"      // Funções de clima
 #include "src/gemini.h"     // Funções da API Gemini
 #include "src/historico.h"  // Funções de histórico
+#include "src/env_loader.h" // Carregador de variáveis de ambiente
 #include "limpar_tela.h"    // Função para limpar a tela
 #include "dormir.h"         // Função para dormir (pausar a execução)
 
@@ -27,6 +28,31 @@ void creditos(); // Função para exibir os créditos do projeto
 int main(){
     setlocale(LC_ALL, "Portuguese_Brazil.utf8"); // Configura a localidade para português brasileiro
     system("chcp 65001"); // Configura o console para UTF-8 (Windows)
+
+    // Carrega as variáveis de ambiente do arquivo .env
+    if (!carregar_env(".env")) {
+        fprintf(stderr, "\n\033[1;33m⚠️  Aviso: Arquivo .env não encontrado!\033[0m\n");
+        fprintf(stderr, "Copie o arquivo .env.example para .env e configure suas API keys.\n\n");
+        fprintf(stderr, "Pressione Enter para sair...");
+        getchar();
+        return 1;
+    }
+
+    // Verifica se as API keys foram carregadas
+    const char* gemini_key = obter_env("GEMINI_API_KEY");
+    const char* weather_key = obter_env("OPENWEATHER_API_KEY");
+
+    if (!gemini_key || !weather_key ||
+        strcmp(gemini_key, "sua_chave_gemini_aqui") == 0 ||
+        strcmp(weather_key, "sua_chave_openweather_aqui") == 0) {
+        fprintf(stderr, "\n\033[1;31m❌ Erro: API keys não configuradas!\033[0m\n");
+        fprintf(stderr, "Edite o arquivo .env e configure suas chaves de API.\n\n");
+        fprintf(stderr, "Pressione Enter para sair...");
+        getchar();
+        limpar_env();
+        return 1;
+    }
+
     limpar_tela();        // Limpa a tela ao iniciar
 
     // Mostra a arte ASCII inicial
@@ -50,6 +76,7 @@ int main(){
     HistoricoChat* chat_historico = inicializar_chat_historico();      // Função para inicializar o histórico do chat
     if (chat_historico == NULL) {                                      // Se a inicialização falhar
         fprintf(stderr, "Erro ao inicializar o histórico do chat.\n"); // Exibe mensagem de erro
+        limpar_env();
         return 1;                                                      // Encerra o programa com erro
     }
 
@@ -109,6 +136,9 @@ int main(){
 
     // Libera o histórico antes de sair
     liberar_historico_chat(chat_historico);
+
+    // Libera as variáveis de ambiente
+    limpar_env();
 
     creditos(); // Exibe os créditos do projeto
 
