@@ -83,7 +83,7 @@ void exibir_historico(HistoricoChat* historico) {
     if (historico != NULL && historico->contador > 0) {
         printf("\n");
         printf("\033[36m╔═══════════════════════════════════════════════════════════╗\033[0m\n");
-        printf("\033[36m║           📜 HISTÓRICO DA CONVERSA                        ║\033[0m\n");
+        printf("\033[36m║                 📜 HISTÓRICO DA CONVERSA                  ║\033[0m\n");
         printf("\033[36m╚═══════════════════════════════════════════════════════════╝\033[0m\n\n");
 
         for (int i = 0; i < historico->contador; i++) {
