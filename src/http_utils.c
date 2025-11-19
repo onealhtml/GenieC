@@ -3,6 +3,7 @@
  */
 
 #include "http_utils.h"
+#include "config.h"
 #include "../dormir.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -55,8 +56,8 @@ char* fazer_requisicao_http(const char* url, const char* payload) {
     curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDS, payload);
     curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
     curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, (void *)&chunk);
-    curl_easy_setopt(curl_handle, CURLOPT_TIMEOUT, 30L);
-    curl_easy_setopt(curl_handle, CURLOPT_CONNECTTIMEOUT, 10L);
+    curl_easy_setopt(curl_handle, CURLOPT_TIMEOUT, HTTP_TIMEOUT);
+    curl_easy_setopt(curl_handle, CURLOPT_CONNECTTIMEOUT, HTTP_CONNECT_TIMEOUT);
 
     // Executa a requisição
     res = curl_easy_perform(curl_handle);

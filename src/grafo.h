@@ -7,6 +7,9 @@
 typedef struct {
     char nome[MAX_NOME_CIDADE];
     int adjacencias[MAX_CIDADES];  // Distâncias em km (-1 = sem conexão)
+    double latitude;                // Coordenada geográfica
+    double longitude;               // Coordenada geográfica
+    int coords_validas;            // Flag: 1 se coordenadas foram carregadas
 } Cidade;
 
 typedef struct {
@@ -24,6 +27,10 @@ char* calcular_menor_caminho_com_mapa(Grafo* g, const char* origem, const char* 
 char* listar_cidades_grafo(Grafo* g);
 char* gerar_mapa_grafo(Grafo* g);
 void liberar_grafo(Grafo* g);
+
+// Funções para persistência de coordenadas
+int salvar_coordenadas_grafo(Grafo* g, const char* arquivo);
+int carregar_coordenadas_grafo(Grafo* g, const char* arquivo);
 
 #endif // GRAFO_H
 

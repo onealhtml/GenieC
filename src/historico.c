@@ -28,7 +28,12 @@ HistoricoChat* inicializar_chat_historico() {
 void adicionar_turno(HistoricoChat* historico, const char* role, const char* text) {
     // Verifica se precisa expandir o array
     if (historico->contador >= historico->capacidade) {
-        int nova_capacidade = (historico->capacidade == 0) ? 2 : historico->capacidade * 2;
+        int nova_capacidade;
+        if (historico->capacidade == 0) {
+            nova_capacidade = 2;
+        } else {
+            nova_capacidade = historico->capacidade * 2;
+        }
 
         TurnoMensagem* novos_turnos = (TurnoMensagem*)realloc(
             historico->turno,

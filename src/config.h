@@ -1,24 +1,42 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-// Configurações de API
-#define MODELO_GEMINI "gemini-2.5-flash-lite"
+// ============================================================================
+// CONFIGURAÇÕES DE MODELOS DE IA
+// ============================================================================
 
-// Configurações de limites
+// Modelo para chat normal (rápido e leve)
+#define MODELO_GEMINI_CHAT "gemini-2.5-flash-lite"
+
+// Modelo para grafos e análises complexas (mais poderoso)
+#define MODELO_GEMINI_GRAFO "gemini-2.5-pro"
+
+// Modelo padrão (compatibilidade)
+#define MODELO_GEMINI MODELO_GEMINI_CHAT
+
+// ============================================================================
+// CONFIGURAÇÕES DE LIMITES
+// ============================================================================
+
 #define MAX_PROMPT_SIZE 10000
 #define MAX_HISTORY_SIZE 50
 #define MAX_HISTORY_TURNS 20
 #define MAX_CITY_NAME 100
 
-// Configurações de retry
+// ============================================================================
+// CONFIGURAÇÕES DE RETRY E TIMEOUT
+// ============================================================================
+
 #define MAX_RETRIES 3
 #define INITIAL_RETRY_DELAY 1000  // 1 segundo em ms
+#define HTTP_TIMEOUT 90L          // 30 segundos
+#define HTTP_CONNECT_TIMEOUT 30L  // 10 segundos
 
-// Configurações de timeout
-#define HTTP_TIMEOUT 30L          // 30 segundos
-#define HTTP_CONNECT_TIMEOUT 10L  // 10 segundos
+// ============================================================================
+// PROMPTS DO SISTEMA
+// ============================================================================
 
-// Prompt do sistema
+// Prompt principal para chat conversacional
 #define SYSTEM_PROMPT "Você é o GenieC, um assistente pessoal para responder dúvidas do dia a dia.\n\n" \
 "CONTEXTO DO USUÁRIO:\n" \
 "- O usuário está localizado em: %s\n" \
@@ -34,5 +52,54 @@
 "FORMATO:\n" \
 "- Respostas diretas e sem formatação especial\n" \
 "- Evite listas longas, use apenas o essencial"
+
+// Prompt para obter distâncias entre cidades (usado em grafos)
+#define PROMPT_DISTANCIAS_GRAFO \
+"Liste distâncias rodoviárias REAIS (BR-XXX, rodovias principais) entre %s e %s.\n\n" \
+"REGRAS OBRIGATÓRIAS:\n" \
+"1. Use GOOGLE MAPS ou dados reais de rodovias brasileiras\n" \
+"2. Inclua 10-15 cidades intermediárias IMPORTANTES na rota principal\n" \
+"3. Adicione rotas alternativas com outras cidades\n" \
+"4. Distâncias entre cidades VIZINHAS (adjacentes), não diretas\n" \
+"5. Cada trecho deve ter 50-300 km (trechos curtos, realistas)\n" \
+"6. Siga rodovias principais (BR-101, BR-116, BR-381, etc)\n\n" \
+"FORMATO OBRIGATÓRIO (uma linha por conexão):\n" \
+"CidadeA-CidadeB:XXX\n\n" \
+"EXEMPLO DE MALHA REAL:\n" \
+"São Paulo-São José dos Campos:85\n" \
+"São José dos Campos-Taubaté:45\n" \
+"Taubaté-Resende:115\n" \
+"Resende-Volta Redonda:35\n" \
+"Volta Redonda-Barra Mansa:15\n" \
+"Barra Mansa-Rio de Janeiro:128\n\n" \
+"IMPORTANTE: Use apenas distâncias VERIFICADAS. Não invente valores!\n" \
+"RESPONDA APENAS COM AS LINHAS NO FORMATO, SEM TEXTO EXTRA."
+
+// Prompt para obter coordenadas de uma única cidade
+#define PROMPT_COORDENADAS_UNICA \
+"Qual a coordenada geográfica exata de %s?\n\n" \
+"RESPONDA APENAS NO FORMATO:\n" \
+"LAT:valor_latitude\n" \
+"LNG:valor_longitude\n\n" \
+"EXEMPLO:\n" \
+"LAT:-23.5505\n" \
+"LNG:-46.6333\n\n" \
+"NÃO ADICIONE TEXTO EXTRA. APENAS AS DUAS LINHAS."
+
+// Prompt para obter coordenadas de múltiplas cidades em lote
+#define PROMPT_COORDENADAS_MULTIPLAS \
+"Forneça as coordenadas geográficas exatas das seguintes cidades:\n\n" \
+"%s\n\n" \
+"RESPONDA APENAS NO FORMATO (uma cidade por linha):\n" \
+"CIDADE|LAT:valor|LNG:valor\n\n" \
+"EXEMPLO:\n" \
+"São Paulo|LAT:-23.5505|LNG:-46.6333\n" \
+"Rio de Janeiro|LAT:-22.9068|LNG:-43.1729\n" \
+"Curitiba|LAT:-25.4284|LNG:-49.2733\n\n" \
+"IMPORTANTE:\n" \
+"- Use coordenadas REAIS e PRECISAS\n" \
+"- Uma linha por cidade\n" \
+"- Formato exato: CIDADE|LAT:numero|LNG:numero\n" \
+"- NÃO adicione texto extra, apenas as linhas no formato"
 
 #endif // CONFIG_H

@@ -115,8 +115,8 @@ char* extrair_texto_da_resposta(const char* resposta_json) {
     return texto_extraido;
 }
 
-// Função principal para consultar o Gemini
-char* consultar_gemini(const char* pergunta, HistoricoChat* historico, const char* cidade) {
+// Função para consultar o Gemini com modelo específico
+char* consultar_gemini_com_modelo(const char* pergunta, HistoricoChat* historico, const char* cidade, const char* modelo) {
     // Cria o payload
     char* payload = criar_payload_json_com_historico(pergunta, historico, cidade);
     if (payload == NULL) {
@@ -132,11 +132,14 @@ char* consultar_gemini(const char* pergunta, HistoricoChat* historico, const cha
         return NULL;
     }
 
-    // Monta a URL
+    // Monta a URL com o modelo especificado
     char url_completa[512];
     snprintf(url_completa, sizeof(url_completa),
              "https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s",
-             MODELO_GEMINI, api_key);
+             modelo, api_key);
+
+    fprintf(stderr, "[DEBUG GEMINI] Usando modelo: %s\n", modelo);
+    fflush(stderr);
 
     // Faz a requisição com retry
     char* resposta_bruta = fazer_requisicao_http_com_retry(url_completa, payload, MAX_RETRIES);
@@ -158,39 +161,25 @@ char* consultar_gemini(const char* pergunta, HistoricoChat* historico, const cha
     return texto_final;
 }
 
+// Função principal para consultar o Gemini (usa modelo padrão para chat)
+char* consultar_gemini(const char* pergunta, HistoricoChat* historico, const char* cidade) {
+    return consultar_gemini_com_modelo(pergunta, historico, cidade, MODELO_GEMINI_CHAT);
+}
+
 // Função para obter distâncias entre cidades usando IA e preencher o grafo
 int obter_distancias_ia_e_preencher_grafo(const char* cidade1, const char* cidade2, Grafo* grafo) {
     if (!cidade1 || !cidade2 || !grafo) return 0;
 
-    // Monta um prompt específico para extrair distâncias
+    // Monta prompt usando template do config.h
     char prompt[2048];
-    snprintf(prompt, sizeof(prompt),
-        "Liste distâncias rodoviárias REAIS (BR-XXX, rodovias principais) entre %s e %s.\n\n"
-        "REGRAS OBRIGATÓRIAS:\n"
-        "1. Use GOOGLE MAPS ou dados reais de rodovias brasileiras\n"
-        "2. Inclua 10-15 cidades intermediárias IMPORTANTES na rota principal\n"
-        "3. Adicione rotas alternativas com outras cidades\n"
-        "4. Distâncias entre cidades VIZINHAS (adjacentes), não diretas\n"
-        "5. Cada trecho deve ter 50-300 km (trechos curtos, realistas)\n"
-        "6. Siga rodovias principais (BR-101, BR-116, BR-381, etc)\n\n"
-        "FORMATO OBRIGATÓRIO (uma linha por conexão):\n"
-        "CidadeA-CidadeB:XXX\n\n"
-        "EXEMPLO DE MALHA REAL:\n"
-        "São Paulo-São José dos Campos:85\n"
-        "São José dos Campos-Taubaté:45\n"
-        "Taubaté-Resende:115\n"
-        "Resende-Volta Redonda:35\n"
-        "Volta Redonda-Barra Mansa:15\n"
-        "Barra Mansa-Rio de Janeiro:128\n\n"
-        "IMPORTANTE: Use apenas distâncias VERIFICADAS. Não invente valores!\n"
-        "RESPONDA APENAS COM AS LINHAS NO FORMATO, SEM TEXTO EXTRA.",
-        cidade1, cidade2);
+    snprintf(prompt, sizeof(prompt), PROMPT_DISTANCIAS_GRAFO, cidade1, cidade2);
 
-    fprintf(stderr, "[DEBUG GRAFO] Consultando IA para distâncias entre %s e %s\n", cidade1, cidade2);
+    fprintf(stderr, "[DEBUG GRAFO] Consultando IA (modelo: %s) para distâncias entre %s e %s\n",
+            MODELO_GEMINI_GRAFO, cidade1, cidade2);
     fflush(stderr);
 
-    // Consulta a IA (sem histórico para resposta objetiva)
-    char* resposta = consultar_gemini(prompt, NULL, "");
+    // Consulta a IA usando modelo específico para grafos (sem histórico)
+    char* resposta = consultar_gemini_com_modelo(prompt, NULL, "", MODELO_GEMINI_GRAFO);
 
     if (!resposta) {
         fprintf(stderr, "[ERRO GRAFO] IA não retornou resposta\n");
@@ -289,5 +278,199 @@ int obter_distancias_ia_e_preencher_grafo(const char* cidade1, const char* cidad
     fflush(stderr);
 
     return conexoes_adicionadas;
+}
+
+// Função para obter coordenadas geográficas de uma cidade via IA
+int obter_coordenadas_cidade(const char* cidade, double* latitude, double* longitude) {
+    if (!cidade || !latitude || !longitude) return 0;
+
+    // Monta prompt usando template do config.h
+    char prompt[1024];
+    snprintf(prompt, sizeof(prompt), PROMPT_COORDENADAS_UNICA, cidade);
+
+    fprintf(stderr, "[DEBUG COORDS] Consultando IA (modelo: %s) para coordenadas de %s\n",
+            MODELO_GEMINI_GRAFO, cidade);
+    fflush(stderr);
+
+    // Consulta a IA usando modelo específico para grafos (sem histórico)
+    char* resposta = consultar_gemini_com_modelo(prompt, NULL, "", MODELO_GEMINI_GRAFO);
+
+    if (!resposta) {
+        fprintf(stderr, "[ERRO COORDS] IA não retornou resposta\n");
+        return 0;
+    }
+
+    fprintf(stderr, "[DEBUG COORDS] Resposta da IA:\n%s\n", resposta);
+    fflush(stderr);
+
+    // Parse da resposta
+    double lat = 0.0, lng = 0.0;
+    int lat_found = 0, lng_found = 0;
+
+    char* linha = strtok(resposta, "\n\r");
+    while (linha) {
+        // Remove espaços em branco no início
+        while (*linha && isspace(*linha)) linha++;
+
+        // Procura por LAT:
+        if (strncasecmp(linha, "LAT:", 4) == 0) {
+            char* valor = linha + 4;
+            while (*valor && isspace(*valor)) valor++;
+            lat = atof(valor);
+            if (lat != 0.0 || *valor == '0') {
+                lat_found = 1;
+                fprintf(stderr, "[DEBUG COORDS] Latitude encontrada: %.4f\n", lat);
+            }
+        }
+        // Procura por LNG: ou LON:
+        else if (strncasecmp(linha, "LNG:", 4) == 0 || strncasecmp(linha, "LON:", 4) == 0) {
+            char* valor = linha + 4;
+            while (*valor && isspace(*valor)) valor++;
+            lng = atof(valor);
+            if (lng != 0.0 || *valor == '0') {
+                lng_found = 1;
+                fprintf(stderr, "[DEBUG COORDS] Longitude encontrada: %.4f\n", lng);
+            }
+        }
+
+        linha = strtok(NULL, "\n\r");
+    }
+
+    free(resposta);
+
+    // Valida se encontrou ambas as coordenadas
+    if (lat_found && lng_found) {
+        *latitude = lat;
+        *longitude = lng;
+        fprintf(stderr, "[DEBUG COORDS] Coordenadas de %s: %.4f, %.4f\n", cidade, lat, lng);
+        return 1;
+    }
+
+    fprintf(stderr, "[ERRO COORDS] Não foi possível extrair coordenadas completas\n");
+    return 0;
+}
+
+// Função OTIMIZADA para obter coordenadas de múltiplas cidades em UMA ÚNICA requisição
+int obter_coordenadas_multiplas(char cidades[][100], int num_cidades, double latitudes[], double longitudes[]) {
+    if (!cidades || num_cidades <= 0 || !latitudes || !longitudes) return 0;
+
+    fprintf(stderr, "[DEBUG COORDS BATCH] Buscando coordenadas de %d cidades em uma única requisição\n", num_cidades);
+
+    // Monta lista de cidades para o prompt
+    char lista_cidades[4096] = "";
+    for (int i = 0; i < num_cidades; i++) {
+        strcat(lista_cidades, cidades[i]);
+        if (i < num_cidades - 1) strcat(lista_cidades, ", ");
+    }
+
+    // Monta prompt usando template do config.h
+    char prompt[8192];
+    snprintf(prompt, sizeof(prompt), PROMPT_COORDENADAS_MULTIPLAS, lista_cidades);
+
+    fprintf(stderr, "[DEBUG COORDS BATCH] Consultando IA (modelo: %s) para %d cidades\n",
+            MODELO_GEMINI_GRAFO, num_cidades);
+    fflush(stderr);
+
+    // Consulta a IA usando modelo específico para grafos (sem histórico)
+    char* resposta = consultar_gemini_com_modelo(prompt, NULL, "", MODELO_GEMINI_GRAFO);
+
+    if (!resposta) {
+        fprintf(stderr, "[ERRO COORDS BATCH] IA não retornou resposta\n");
+        return 0;
+    }
+
+    fprintf(stderr, "[DEBUG COORDS BATCH] Resposta da IA:\n%s\n", resposta);
+    fflush(stderr);
+
+    // Parse da resposta - processa linha por linha
+    int coords_encontradas = 0;
+    char* resposta_copia = strdup(resposta); // Cópia para não modificar original
+    char* linha = strtok(resposta_copia, "\n\r");
+
+    while (linha && coords_encontradas < num_cidades) {
+        // Remove espaços em branco no início
+        while (*linha && isspace(*linha)) linha++;
+
+        // Ignora linhas vazias ou que começam com caracteres especiais
+        if (*linha == '\0' || *linha == '#' || *linha == '*' || *linha == '-' || *linha == '=') {
+            linha = strtok(NULL, "\n\r");
+            continue;
+        }
+
+        // Procura pelo padrão: CIDADE|LAT:valor|LNG:valor
+        char* sep1 = strchr(linha, '|');
+        if (!sep1) {
+            linha = strtok(NULL, "\n\r");
+            continue;
+        }
+
+        // Extrai nome da cidade
+        char nome_cidade[100] = {0};
+        size_t len_nome = sep1 - linha;
+        if (len_nome > 0 && len_nome < 100) {
+            strncpy(nome_cidade, linha, len_nome);
+            nome_cidade[len_nome] = '\0';
+
+            // Remove espaços extras
+            char* end = nome_cidade + strlen(nome_cidade) - 1;
+            while (end > nome_cidade && isspace(*end)) *end-- = '\0';
+            char* start = nome_cidade;
+            while (*start && isspace(*start)) start++;
+            if (start != nome_cidade) memmove(nome_cidade, start, strlen(start) + 1);
+        }
+
+        // Encontra LAT:
+        char* lat_pos = strstr(sep1, "LAT:");
+        char* lng_pos = strstr(sep1, "LNG:");
+
+        if (lat_pos && lng_pos) {
+            // Extrai latitude
+            double lat = 0.0;
+            char* lat_val = lat_pos + 4;
+            while (*lat_val && isspace(*lat_val)) lat_val++;
+
+            char lat_str[32] = {0};
+            int idx = 0;
+            while (*lat_val && (isdigit(*lat_val) || *lat_val == '.' || *lat_val == '-') && idx < 31) {
+                lat_str[idx++] = *lat_val++;
+            }
+            lat_str[idx] = '\0';
+            lat = atof(lat_str);
+
+            // Extrai longitude
+            double lng = 0.0;
+            char* lng_val = lng_pos + 4;
+            while (*lng_val && isspace(*lng_val)) lng_val++;
+
+            char lng_str[32] = {0};
+            idx = 0;
+            while (*lng_val && (isdigit(*lng_val) || *lng_val == '.' || *lng_val == '-') && idx < 31) {
+                lng_str[idx++] = *lng_val++;
+            }
+            lng_str[idx] = '\0';
+            lng = atof(lng_str);
+
+            // Encontra qual cidade corresponde
+            for (int i = 0; i < num_cidades; i++) {
+                if (strcasecmp(nome_cidade, cidades[i]) == 0) {
+                    latitudes[i] = lat;
+                    longitudes[i] = lng;
+                    coords_encontradas++;
+                    fprintf(stderr, "[DEBUG COORDS BATCH] ✓ %s: %.4f, %.4f\n", cidades[i], lat, lng);
+                    break;
+                }
+            }
+        }
+
+        linha = strtok(NULL, "\n\r");
+    }
+
+    free(resposta_copia);
+    free(resposta);
+
+    fprintf(stderr, "[DEBUG COORDS BATCH] Total de coordenadas encontradas: %d de %d\n",
+            coords_encontradas, num_cidades);
+
+    return coords_encontradas;
 }
 

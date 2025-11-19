@@ -1,4 +1,5 @@
 #include "grafo.h"
+#include "gemini.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -13,6 +14,9 @@ Grafo* criar_grafo() {
     // Inicializa todas as adjacências como -1 (sem conexão)
     for (int i = 0; i < MAX_CIDADES; i++) {
         g->cidades[i].nome[0] = '\0';
+        g->cidades[i].latitude = 0.0;
+        g->cidades[i].longitude = 0.0;
+        g->cidades[i].coords_validas = 0;
         for (int j = 0; j < MAX_CIDADES; j++) {
             g->cidades[i].adjacencias[j] = -1;
         }
@@ -282,10 +286,6 @@ char* gerar_mapa_grafo(Grafo* g) {
     // Gera HTML com mapa Leaflet
     char* resultado = (char*)malloc(32768);
 
-    // Calcula centro do mapa (média das posições - Brasil central)
-    const char* centro_lat = "-15.7939";
-    const char* centro_lng = "-47.8828";
-
     // Usa um ID único baseado em timestamp
     static int mapa_counter = 0;
     mapa_counter++;
@@ -305,89 +305,65 @@ char* gerar_mapa_grafo(Grafo* g) {
         "    if (typeof window.mapaGrafo_%d !== 'undefined') {"
         "      window.mapaGrafo_%d.remove();"
         "    }"
-        "    window.mapaGrafo_%d = L.map('mapa-container-%d').setView([%s, %s], 5);"
+        "    window.mapaGrafo_%d = L.map('mapa-container-%d').setView([-15.7939, -47.8828], 4);"
         "    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {"
         "      attribution: '© OpenStreetMap',"
         "      maxZoom: 18"
         "    }).addTo(window.mapaGrafo_%d);"
         "    console.log('Mapa do grafo criado com sucesso!');"
-        , mapa_counter, mapa_counter, mapa_counter, mapa_counter, mapa_counter, mapa_counter, centro_lat, centro_lng, mapa_counter);
+        "    var allMarkers = [];"
+        , mapa_counter, mapa_counter, mapa_counter, mapa_counter, mapa_counter, mapa_counter, mapa_counter);
 
-    // Adiciona marcadores para cada cidade (usando coordenadas aproximadas do Brasil)
-    // Coordenadas aproximadas de cidades brasileiras principais
-    const char* cidades_coords[][3] = {
-        {"São Paulo", "-23.5505", "-46.6333"},
-        {"Rio de Janeiro", "-22.9068", "-43.1729"},
-        {"Curitiba", "-25.4284", "-49.2733"},
-        {"Porto Alegre", "-30.0346", "-51.2177"},
-        {"Florianópolis", "-27.5954", "-48.5480"},
-        {"Belo Horizonte", "-19.9167", "-43.9345"},
-        {"Brasília", "-15.7939", "-47.8828"},
-        {"Salvador", "-12.9714", "-38.5014"},
-        {"Recife", "-8.0476", "-34.8770"},
-        {"Fortaleza", "-3.7319", "-38.5267"},
-        {"Campinas", "-22.9099", "-47.0626"},
-        {"Santos", "-23.9608", "-46.3336"},
-        {"Joinville", "-26.3045", "-48.8487"},
-        {"Blumenau", "-26.9194", "-49.0661"},
-        {"Caxias do Sul", "-29.1634", "-51.1797"},
-        {"Pelotas", "-31.7654", "-52.3376"},
-        {"Londrina", "-23.3045", "-51.1696"},
-        {"Maringá", "-23.4205", "-51.9333"},
-        {"Foz do Iguaçu", "-25.5478", "-54.5882"},
-        {"Vitória", "-20.3155", "-40.3128"},
-        {"Goiânia", "-16.6869", "-49.2648"},
-        {"Sorocaba", "-23.5015", "-47.4526"},
-        {"Ribeirão Preto", "-21.1767", "-47.8208"},
-        {"São José dos Campos", "-23.2237", "-45.9009"},
-        {"Uberlândia", "-18.9188", "-48.2768"},
-        {"Taubaté", "-23.0264", "-45.5555"},
-        {"Resende", "-22.4688", "-44.4465"},
-        {"Volta Redonda", "-22.5231", "-44.1044"},
-        {"Barra Mansa", "-22.5444", "-44.1728"},
-        {"Campos dos Goytacazes", "-21.7622", "-41.3181"},
-        {"Juiz de Fora", "-21.7642", "-43.3502"},
-        {"Angra dos Reis", "-23.0067", "-44.3181"},
-        {"Paraty", "-23.2236", "-44.7161"},
-        {"Guarulhos", "-23.4538", "-46.5333"},
-        {"Osasco", "-23.5329", "-46.7919"},
-        {"São Bernardo do Campo", "-23.6914", "-46.5650"},
-        {"Santo André", "-23.6636", "-46.5341"},
-        {"Mogi das Cruzes", "-23.5229", "-46.1883"},
-        {"Jundiaí", "-23.1864", "-46.8978"},
-        {"Piracicaba", "-22.7253", "-47.6492"},
-        {"Bauru", "-22.3147", "-49.0608"},
-        {"Presidente Prudente", "-22.1256", "-51.3889"},
-        {"Registro", "-24.4878", "-47.8433"},
-        {"Itanhaém", "-24.1831", "-46.7889"},
-        {"Guaratinguetá", "-22.8161", "-45.1928"},
-        {"Lorena", "-22.7311", "-45.1248"},
-        {"Criciúma", "-28.6778", "-49.3697"},
-        {"Lages", "-27.8167", "-50.3264"},
-        {"Chapecó", "-27.0964", "-52.6181"},
-        {"Passo Fundo", "-28.2625", "-52.4083"},
-        {"Canoas", "-29.9175", "-51.1836"},
-        {"Novo Hamburgo", "-29.6783", "-51.1306"},
-        {"São Leopoldo", "-29.7603", "-51.1472"},
-        {NULL, NULL, NULL}
-    };
+    // OTIMIZAÇÃO: Obtém todas as coordenadas em UMA ÚNICA requisição
+    // Nota: Coordenadas já foram carregadas no início do programa
+    fprintf(stderr, "[DEBUG MAPA] Verificando coordenadas para %d cidades\n", g->num_cidades);
 
-    // Adiciona marcadores das cidades do grafo
+    // Identifica quais cidades precisam de coordenadas
+    char cidades_sem_coords[MAX_CIDADES][100];
+    int indices_sem_coords[MAX_CIDADES];
+    int num_sem_coords = 0;
+
     for (int i = 0; i < g->num_cidades; i++) {
-        const char* lat = NULL;
-        const char* lng = NULL;
-
-        // Procura coordenadas conhecidas
-        for (int j = 0; cidades_coords[j][0] != NULL; j++) {
-            if (strcasecmp(g->cidades[i].nome, cidades_coords[j][0]) == 0) {
-                lat = cidades_coords[j][1];
-                lng = cidades_coords[j][2];
-                break;
-            }
+        if (!g->cidades[i].coords_validas) {
+            strncpy(cidades_sem_coords[num_sem_coords], g->cidades[i].nome, 99);
+            cidades_sem_coords[num_sem_coords][99] = '\0';
+            indices_sem_coords[num_sem_coords] = i;
+            num_sem_coords++;
         }
+    }
 
-        // Se encontrou coordenadas, adiciona marcador
-        if (lat && lng) {
+    // Se há cidades sem coordenadas, busca TODAS de uma vez
+    if (num_sem_coords > 0) {
+        fprintf(stderr, "[DEBUG MAPA] Buscando coordenadas de %d cidades em LOTE\n", num_sem_coords);
+
+        double latitudes[MAX_CIDADES];
+        double longitudes[MAX_CIDADES];
+
+        int encontradas = obter_coordenadas_multiplas(cidades_sem_coords, num_sem_coords,
+                                                       latitudes, longitudes);
+
+        if (encontradas > 0) {
+            // Atualiza coordenadas no grafo
+            for (int i = 0; i < num_sem_coords; i++) {
+                if (latitudes[i] != 0.0 || longitudes[i] != 0.0) {
+                    int idx = indices_sem_coords[i];
+                    g->cidades[idx].latitude = latitudes[i];
+                    g->cidades[idx].longitude = longitudes[i];
+                    g->cidades[idx].coords_validas = 1;
+                }
+            }
+            fprintf(stderr, "[DEBUG MAPA] ✓ Coordenadas de %d cidades obtidas com sucesso!\n", encontradas);
+
+            // Salva as novas coordenadas no arquivo
+            salvar_coordenadas_grafo(g, "coordenadas_grafo.txt");
+        }
+    } else {
+        fprintf(stderr, "[DEBUG MAPA] Todas as cidades já têm coordenadas em cache\n");
+    }
+
+    // Adiciona marcadores para cada cidade
+    for (int i = 0; i < g->num_cidades; i++) {
+        if (g->cidades[i].coords_validas) {
             char marker_code[1024];
 
             // Conta conexões
@@ -397,55 +373,43 @@ char* gerar_mapa_grafo(Grafo* g) {
             }
 
             snprintf(marker_code, sizeof(marker_code),
-                "    L.marker([%s, %s]).addTo(window.mapaGrafo_%d)"
+                "    var marker_%d = L.marker([%.4f, %.4f]).addTo(window.mapaGrafo_%d)"
                 ".bindPopup('<b>%s</b><br>%d conexões');"
-                , lat, lng, mapa_counter, g->cidades[i].nome, num_conexoes);
+                "    allMarkers.push(marker_%d);"
+                , i, g->cidades[i].latitude, g->cidades[i].longitude, mapa_counter,
+                g->cidades[i].nome, num_conexoes, i);
             strcat(resultado, marker_code);
         }
     }
 
-    // Adiciona linhas conectando as cidades
+    // Adiciona linhas conectando as cidades (usando coordenadas dinâmicas)
     for (int i = 0; i < g->num_cidades; i++) {
-        const char* lat1 = NULL;
-        const char* lng1 = NULL;
-
-        for (int k = 0; cidades_coords[k][0] != NULL; k++) {
-            if (strcasecmp(g->cidades[i].nome, cidades_coords[k][0]) == 0) {
-                lat1 = cidades_coords[k][1];
-                lng1 = cidades_coords[k][2];
-                break;
-            }
-        }
-
-        if (lat1 && lng1) {
+        if (g->cidades[i].coords_validas) {
             for (int j = i + 1; j < g->num_cidades; j++) {
-                if (g->cidades[i].adjacencias[j] != -1) {
-                    const char* lat2 = NULL;
-                    const char* lng2 = NULL;
-
-                    for (int k = 0; cidades_coords[k][0] != NULL; k++) {
-                        if (strcasecmp(g->cidades[j].nome, cidades_coords[k][0]) == 0) {
-                            lat2 = cidades_coords[k][1];
-                            lng2 = cidades_coords[k][2];
-                            break;
-                        }
-                    }
-
-                    if (lat2 && lng2) {
-                        char line_code[512];
-                        snprintf(line_code, sizeof(line_code),
-                            "    L.polyline([[%s,%s],[%s,%s]], {color: '#2196F3', weight: 2, opacity: 0.7})"
-                            ".addTo(window.mapaGrafo_%d).bindPopup('%s ↔ %s: %d km');"
-                            , lat1, lng1, lat2, lng2, mapa_counter,
-                            g->cidades[i].nome, g->cidades[j].nome,
-                            g->cidades[i].adjacencias[j]);
-                        strcat(resultado, line_code);
-                    }
+                if (g->cidades[i].adjacencias[j] != -1 && g->cidades[j].coords_validas) {
+                    char line_code[512];
+                    snprintf(line_code, sizeof(line_code),
+                        "    L.polyline([[%.4f,%.4f],[%.4f,%.4f]], {color: '#2196F3', weight: 2, opacity: 0.7})"
+                        ".addTo(window.mapaGrafo_%d).bindPopup('%s ↔ %s: %d km');"
+                        , g->cidades[i].latitude, g->cidades[i].longitude,
+                        g->cidades[j].latitude, g->cidades[j].longitude,
+                        mapa_counter,
+                        g->cidades[i].nome, g->cidades[j].nome,
+                        g->cidades[i].adjacencias[j]);
+                    strcat(resultado, line_code);
                 }
             }
         }
     }
 
+    strcat(resultado, "    if (allMarkers.length > 0) {");
+    strcat(resultado, "      var group = new L.featureGroup(allMarkers);");
+    strcat(resultado, "      window.mapaGrafo_" );
+    char temp_counter[32];
+    snprintf(temp_counter, sizeof(temp_counter), "%d", mapa_counter);
+    strcat(resultado, temp_counter);
+    strcat(resultado, ".fitBounds(group.getBounds().pad(0.1));");
+    strcat(resultado, "    }");
     strcat(resultado, "  } catch(e) { console.error('Erro ao criar mapa:', e); }");
     strcat(resultado, "})();");
     strcat(resultado, "</script>");
@@ -518,64 +482,58 @@ char* calcular_menor_caminho_com_mapa(Grafo* g, const char* origem, const char* 
         path[path_size++] = v;
     }
 
-    // Coordenadas das cidades (mesma lista da função acima)
-    const char* cidades_coords[][3] = {
-        {"São Paulo", "-23.5505", "-46.6333"},
-        {"Rio de Janeiro", "-22.9068", "-43.1729"},
-        {"Curitiba", "-25.4284", "-49.2733"},
-        {"Porto Alegre", "-30.0346", "-51.2177"},
-        {"Florianópolis", "-27.5954", "-48.5480"},
-        {"Belo Horizonte", "-19.9167", "-43.9345"},
-        {"Brasília", "-15.7939", "-47.8828"},
-        {"Salvador", "-12.9714", "-38.5014"},
-        {"Joinville", "-26.3045", "-48.8487"},
-        {"Blumenau", "-26.9194", "-49.0661"},
-        {"Caxias do Sul", "-29.1634", "-51.1797"},
-        {"Campinas", "-22.9099", "-47.0626"},
-        {"Santos", "-23.9608", "-46.3336"},
-        {"São José dos Campos", "-23.2237", "-45.9009"},
-        {"Sorocaba", "-23.5015", "-47.4526"},
-        {"Ribeirão Preto", "-21.1767", "-47.8208"},
-        {"Taubaté", "-23.0264", "-45.5555"},
-        {"Resende", "-22.4688", "-44.4465"},
-        {"Volta Redonda", "-22.5231", "-44.1044"},
-        {"Barra Mansa", "-22.5444", "-44.1728"},
-        {"Campos dos Goytacazes", "-21.7622", "-41.3181"},
-        {"Juiz de Fora", "-21.7642", "-43.3502"},
-        {"Guarulhos", "-23.4538", "-46.5333"},
-        {"Osasco", "-23.5329", "-46.7919"},
-        {"Mogi das Cruzes", "-23.5229", "-46.1883"},
-        {"Jundiaí", "-23.1864", "-46.8978"},
-        {"Registro", "-24.4878", "-47.8433"},
-        {"Guaratinguetá", "-22.8161", "-45.1928"},
-        {"Lorena", "-22.7311", "-45.1248"},
-        {"Criciúma", "-28.6778", "-49.3697"},
-        {"Lages", "-27.8167", "-50.3264"},
-        {"Canoas", "-29.9175", "-51.1836"},
-        {"Novo Hamburgo", "-29.6783", "-51.1306"},
-        {NULL, NULL, NULL}
-    };
+    // OTIMIZAÇÃO: Obtém coordenadas das cidades da rota em UMA ÚNICA requisição
+    // Nota: Coordenadas já foram carregadas no início do programa
+    char cidades_sem_coords[MAX_CIDADES][100];
+    int indices_sem_coords[MAX_CIDADES];
+    int num_sem_coords = 0;
+
+    for (int i = 0; i < path_size; i++) {
+        int idx = path[i];
+        if (!g->cidades[idx].coords_validas) {
+            strncpy(cidades_sem_coords[num_sem_coords], g->cidades[idx].nome, 99);
+            cidades_sem_coords[num_sem_coords][99] = '\0';
+            indices_sem_coords[num_sem_coords] = idx;
+            num_sem_coords++;
+        }
+    }
+
+    if (num_sem_coords > 0) {
+        fprintf(stderr, "[DEBUG MAPA ROTA] Buscando coordenadas de %d cidades em LOTE\n", num_sem_coords);
+
+        double latitudes[MAX_CIDADES];
+        double longitudes[MAX_CIDADES];
+
+        int encontradas = obter_coordenadas_multiplas(cidades_sem_coords, num_sem_coords,
+                                                       latitudes, longitudes);
+
+        if (encontradas > 0) {
+            for (int i = 0; i < num_sem_coords; i++) {
+                if (latitudes[i] != 0.0 || longitudes[i] != 0.0) {
+                    int idx = indices_sem_coords[i];
+                    g->cidades[idx].latitude = latitudes[i];
+                    g->cidades[idx].longitude = longitudes[i];
+                    g->cidades[idx].coords_validas = 1;
+                }
+            }
+            fprintf(stderr, "[DEBUG MAPA ROTA] ✓ Coordenadas obtidas com sucesso!\n");
+
+            // Salva as novas coordenadas no arquivo
+            salvar_coordenadas_grafo(g, "coordenadas_grafo.txt");
+        }
+    }
 
     // Monta resultado com mapa
     char* resultado = (char*)malloc(32768);
 
-    // Calcula centro do mapa (média entre origem e destino)
-    const char *lat_orig = NULL, *lng_orig = NULL;
-    const char *lat_dest = NULL, *lng_dest = NULL;
+    // Calcula centro do mapa (usa coordenadas da origem ou Brasil central)
+    char centro_lat[32] = "-15.7939";
+    char centro_lng[32] = "-47.8828";
 
-    for (int i = 0; cidades_coords[i][0] != NULL; i++) {
-        if (strcasecmp(origem, cidades_coords[i][0]) == 0) {
-            lat_orig = cidades_coords[i][1];
-            lng_orig = cidades_coords[i][2];
-        }
-        if (strcasecmp(destino, cidades_coords[i][0]) == 0) {
-            lat_dest = cidades_coords[i][1];
-            lng_dest = cidades_coords[i][2];
-        }
+    if (g->cidades[idx_origem].coords_validas) {
+        snprintf(centro_lat, sizeof(centro_lat), "%.4f", g->cidades[idx_origem].latitude);
+        snprintf(centro_lng, sizeof(centro_lng), "%.4f", g->cidades[idx_origem].longitude);
     }
-
-    const char* centro_lat = lat_orig ? lat_orig : "-15.7939";
-    const char* centro_lng = lng_orig ? lng_orig : "-47.8828";
 
     // Monta caminho visual
     char caminho_visual[2048] = "";
@@ -613,7 +571,7 @@ char* calcular_menor_caminho_com_mapa(Grafo* g, const char* origem, const char* 
         "📏 <b>Distância Total:</b> <span style='color: #4CAF50; font-size: 1.3em;'><b>%d km</b></span><br><br>"
 
         "🗺️ <b>Mapa da Rota:</b><br>"
-        "<div id='mapa-rota-%d' style='width: 100%%; height: 400px; border: 2px solid #4CAF50; border-radius: 8px; margin: 10px 0;'></div>"
+        "<div id='mapa-rota-%d' style='width: 100%%; height: 500px; border: 2px solid #4CAF50; border-radius: 8px; margin: 10px 0;'></div>"
         "<script>"
         "(function() {"
         "  console.log('Inicializando mapa de rota...');"
@@ -633,34 +591,42 @@ char* calcular_menor_caminho_com_mapa(Grafo* g, const char* origem, const char* 
         , origem, destino, path_size, dist[idx_destino], rota_counter, rota_counter,
           rota_counter, rota_counter, rota_counter, rota_counter, centro_lat, centro_lng, rota_counter);
 
-    // Adiciona marcadores e linha da rota
+    // Adiciona marcadores e linha da rota (usando coordenadas dinâmicas)
     char polyline_points[4096] = "[";
 
     for (int i = path_size - 1; i >= 0; i--) {
-        const char *lat = NULL, *lng = NULL;
+        int idx = path[i];
 
-        for (int j = 0; cidades_coords[j][0] != NULL; j++) {
-            if (strcasecmp(g->cidades[path[i]].nome, cidades_coords[j][0]) == 0) {
-                lat = cidades_coords[j][1];
-                lng = cidades_coords[j][2];
-                break;
-            }
-        }
-
-        if (lat && lng) {
+        if (g->cidades[idx].coords_validas) {
             // Adiciona ao polyline
             char point[128];
-            snprintf(point, sizeof(point), "%s[%s,%s]", (i < path_size - 1) ? "," : "", lat, lng);
+            const char* separator;
+            if (i < path_size - 1) {
+                separator = ",";
+            } else {
+                separator = "";
+            }
+            snprintf(point, sizeof(point), "%s[%.4f,%.4f]",
+                separator,
+                g->cidades[idx].latitude,
+                g->cidades[idx].longitude);
             strcat(polyline_points, point);
 
             // Adiciona marcador
             char marker[512];
-            const char* icon_color = (i == path_size - 1) ? "green" : (i == 0) ? "red" : "blue";
-            const char* label = (i == path_size - 1) ? "🚩 Origem" : (i == 0) ? "🎯 Destino" : "📍";
+            const char* label;
+            if (i == path_size - 1) {
+                label = "🚩 Origem";
+            } else if (i == 0) {
+                label = "🎯 Destino";
+            } else {
+                label = "📍";
+            }
 
             snprintf(marker, sizeof(marker),
-                "    L.marker([%s,%s]).addTo(window.mapaRota_%d).bindPopup('<b>%s</b><br>%s');"
-                , lat, lng, rota_counter, g->cidades[path[i]].nome, label);
+                "    L.marker([%.4f,%.4f]).addTo(window.mapaRota_%d).bindPopup('<b>%s</b><br>%s');"
+                , g->cidades[idx].latitude, g->cidades[idx].longitude,
+                rota_counter, g->cidades[idx].nome, label);
             strcat(resultado, marker);
         }
     }
@@ -702,5 +668,101 @@ void liberar_grafo(Grafo* g) {
     if (g) {
         free(g);
     }
+}
+
+// Salva as coordenadas do grafo em arquivo
+int salvar_coordenadas_grafo(Grafo* g, const char* arquivo) {
+    if (!g || !arquivo) return 0;
+
+    FILE* f = fopen(arquivo, "w");
+    if (!f) {
+        fprintf(stderr, "[ERRO COORDS] Não foi possível abrir arquivo para salvar: %s\n", arquivo);
+        return 0;
+    }
+
+    fprintf(f, "# Coordenadas do Grafo GenieC\n");
+    fprintf(f, "# Formato: CIDADE|LATITUDE|LONGITUDE\n");
+    fprintf(f, "# Total de cidades: %d\n\n", g->num_cidades);
+
+    int salvos = 0;
+    for (int i = 0; i < g->num_cidades; i++) {
+        if (g->cidades[i].coords_validas) {
+            fprintf(f, "%s|%.6f|%.6f\n",
+                g->cidades[i].nome,
+                g->cidades[i].latitude,
+                g->cidades[i].longitude);
+            salvos++;
+        }
+    }
+
+    fclose(f);
+    fprintf(stderr, "[INFO COORDS] %d coordenadas salvas em: %s\n", salvos, arquivo);
+    return salvos;
+}
+
+// Carrega as coordenadas do grafo de arquivo
+int carregar_coordenadas_grafo(Grafo* g, const char* arquivo) {
+    if (!g || !arquivo) return 0;
+
+    FILE* f = fopen(arquivo, "r");
+    if (!f) {
+        fprintf(stderr, "[INFO COORDS] Arquivo de coordenadas não encontrado: %s (será criado ao salvar)\n", arquivo);
+        return 0;
+    }
+
+    char linha[512];
+    int carregados = 0;
+
+    while (fgets(linha, sizeof(linha), f)) {
+        // Ignora comentários e linhas vazias
+        if (linha[0] == '#' || linha[0] == '\n' || linha[0] == '\r') continue;
+
+        // Remove quebra de linha
+        linha[strcspn(linha, "\r\n")] = 0;
+
+        // Parse: CIDADE|LATITUDE|LONGITUDE
+        char nome[MAX_NOME_CIDADE];
+        double lat, lng;
+
+        char* pipe1 = strchr(linha, '|');
+        if (!pipe1) continue;
+
+        char* pipe2 = strchr(pipe1 + 1, '|');
+        if (!pipe2) continue;
+
+        // Extrai nome da cidade
+        size_t len = pipe1 - linha;
+        if (len >= MAX_NOME_CIDADE) len = MAX_NOME_CIDADE - 1;
+        strncpy(nome, linha, len);
+        nome[len] = '\0';
+
+        // Extrai coordenadas
+        lat = atof(pipe1 + 1);
+        lng = atof(pipe2 + 1);
+
+        // Procura a cidade no grafo e atualiza coordenadas
+        int idx = encontrar_cidade(g, nome);
+        if (idx != -1) {
+            // Cidade já existe no grafo - apenas atualiza coordenadas
+            g->cidades[idx].latitude = lat;
+            g->cidades[idx].longitude = lng;
+            g->cidades[idx].coords_validas = 1;
+            carregados++;
+            fprintf(stderr, "[DEBUG COORDS] Carregado: %s (%.4f, %.4f)\n", nome, lat, lng);
+        } else if (g->num_cidades < MAX_CIDADES) {
+            // Cidade não existe - adiciona com coordenadas
+            adicionar_cidade(g, nome);
+            idx = g->num_cidades - 1;
+            g->cidades[idx].latitude = lat;
+            g->cidades[idx].longitude = lng;
+            g->cidades[idx].coords_validas = 1;
+            carregados++;
+            fprintf(stderr, "[DEBUG COORDS] Adicionado ao grafo: %s (%.4f, %.4f)\n", nome, lat, lng);
+        }
+    }
+
+    fclose(f);
+    fprintf(stderr, "[INFO COORDS] %d coordenadas carregadas de: %s\n", carregados, arquivo);
+    return carregados;
 }
 

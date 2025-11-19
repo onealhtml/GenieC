@@ -33,8 +33,20 @@ void handle_rpc(const char *seq, const char *req, void *arg) {
     webview_t w = (webview_t)arg;
 
     // DEBUG: Log para ver o que está chegando
-    fprintf(stderr, "[DEBUG handle_rpc] seq=%s\n", seq ? seq : "(null)");
-    fprintf(stderr, "[DEBUG handle_rpc] req=%s\n", req ? req : "(null)");
+    const char* seq_str;
+    if (seq != NULL) {
+        seq_str = seq;
+    } else {
+        seq_str = "(null)";
+    }
+    const char* req_str;
+    if (req != NULL) {
+        req_str = req;
+    } else {
+        req_str = "(null)";
+    }
+    fprintf(stderr, "[DEBUG handle_rpc] seq=%s\n", seq_str);
+    fprintf(stderr, "[DEBUG handle_rpc] req=%s\n", req_str);
     fflush(stderr);
 
     // Parse robusto com cJSON
@@ -84,17 +96,35 @@ void handle_rpc(const char *seq, const char *req, void *arg) {
         }
     }
 
-    fprintf(stderr, "[DEBUG] Método identificado: %s\n", method ? method : "(nenhum)");
+    const char* method_str;
+    if (method != NULL) {
+        method_str = method;
+    } else {
+        method_str = "(nenhum)";
+    }
+    fprintf(stderr, "[DEBUG] Método identificado: %s\n", method_str);
     fflush(stderr);
 
     if (method && strcmp(method, "pergunta") == 0) {
-        fprintf(stderr, "[DEBUG] Texto extraído: %s\n", texto ? texto : "(vazio)");
+        const char* texto_str;
+        if (texto != NULL) {
+            texto_str = texto;
+        } else {
+            texto_str = "(vazio)";
+        }
+        fprintf(stderr, "[DEBUG] Texto extraído: %s\n", texto_str);
         fflush(stderr);
 
         if (texto && texto[0] != '\0') {
             // Verifica comandos especiais
             if (strcmp(texto, "ajuda") == 0 || strcmp(texto, "help") == 0) {
                 char ajuda[3072];
+                const char* cidade_exemplo;
+                if (g_cidade[0] != '\0') {
+                    cidade_exemplo = g_cidade;
+                } else {
+                    cidade_exemplo = "minha cidade";
+                }
                 snprintf(ajuda, sizeof(ajuda),
                     "📚 <b>AJUDA - GenieC</b><br><br>"
                     "🎯 <b>Como usar:</b><br>"
@@ -118,7 +148,7 @@ void handle_rpc(const char *seq, const char *req, void *arg) {
                     "• \"Qual é a história de %s?\"<br>"
                     "• \"Como fazer um currículo profissional?\"<br>"
                     "• \"grafo Curitiba-Florianópolis\"",
-                    g_cidade[0] ? g_cidade : "minha cidade");
+                    cidade_exemplo);
 
                 char js_code[4096];
                 snprintf(js_code, sizeof(js_code),
@@ -135,8 +165,15 @@ void handle_rpc(const char *seq, const char *req, void *arg) {
                 if (g_historico && g_historico->contador > 0) {
                     int pos = strlen(historico_html);
                     for (int i = 0; i < g_historico->contador && pos < 7500; i++) {
-                        const char* icone = strcmp(g_historico->turno[i].role, "user") == 0 ? "👤" : "🤖";
-                        const char* nome = strcmp(g_historico->turno[i].role, "user") == 0 ? "Você" : "GenieC";
+                        const char* icone;
+                        const char* nome;
+                        if (strcmp(g_historico->turno[i].role, "user") == 0) {
+                            icone = "👤";
+                            nome = "Você";
+                        } else {
+                            icone = "🤖";
+                            nome = "GenieC";
+                        }
 
                         char linha[512];
                         char msg_preview[200];
@@ -144,8 +181,15 @@ void handle_rpc(const char *seq, const char *req, void *arg) {
                         strncpy(msg_preview, g_historico->turno[i].text, 150);
                         msg_preview[150] = '\0';
 
+                        const char* ellipsis;
+                        if (texto_len > 150) {
+                            ellipsis = "...";
+                        } else {
+                            ellipsis = "";
+                        }
+
                         snprintf(linha, sizeof(linha), "%s <b>%s:</b> %s%s<br><br>",
-                            icone, nome, msg_preview, (texto_len > 150) ? "..." : "");
+                            icone, nome, msg_preview, ellipsis);
 
                         if (pos + strlen(linha) < sizeof(historico_html) - 100) {
                             strcat(historico_html, linha);
@@ -419,6 +463,13 @@ int main() {
         liberar_historico_chat(g_historico);
         limpar_env();
         return 1;
+    }
+
+    // Carrega coordenadas salvas anteriormente (se existir)
+    // IMPORTANTE: Isso carrega as coordenadas das cidades que já foram usadas antes
+    int coords_carregadas = carregar_coordenadas_grafo(g_grafo, "coordenadas_grafo.txt");
+    if (coords_carregadas > 0) {
+        fprintf(stderr, "[INFO] %d coordenadas carregadas do cache ao iniciar\n", coords_carregadas);
     }
 
     // Cria a janela

@@ -137,8 +137,17 @@ void mostrar_ajuda() {
 void mostrar_loading() {
     int dots = 0;
     for (int i = 0; i < 4; i++) {
-        printf("\rConsultando IA%s",
-               (dots % 4 == 0 ? "   " : dots % 4 == 1 ? "." : dots % 4 == 2 ? ".." : "..."));
+        const char* loading_dots;
+        if (dots % 4 == 0) {
+            loading_dots = "   ";
+        } else if (dots % 4 == 1) {
+            loading_dots = ".";
+        } else if (dots % 4 == 2) {
+            loading_dots = "..";
+        } else {
+            loading_dots = "...";
+        }
+        printf("\rConsultando IA%s", loading_dots);
         fflush(stdout);
         dots++;
         dormir(500);
