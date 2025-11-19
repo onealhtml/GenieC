@@ -219,17 +219,6 @@ GenieC/
 | **Google Gemini** | API v1beta | IA conversacional |
 | **OpenWeatherMap** | API 2.5 | Dados meteorológicos |
 
----
-
-## 📖 Documentação Adicional
-
-- 📘 [Configuração de API Keys](CONFIGURACAO_API.md)
-- 📗 [Recursos do dotenv-c](DOTENV_FEATURES.md)
-- 📙 [Arquitetura Modular](ARQUITETURA_MODULAR.md)
-- 📕 [Análise de Código](ANALISE_CODIGO_COMPLETA.md)
-
----
-
 ## 🎓 Equipe de Desenvolvimento
 
 <table>
