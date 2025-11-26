@@ -6,7 +6,7 @@
 // ============================================================================
 
 // Modelo para chat normal (rápido e leve)
-#define MODELO_GEMINI_CHAT "gemini-2.5-flash-lite"
+#define MODELO_GEMINI_CHAT "gemini-2.5-flash-preview-09-2025"
 
 // Modelo para grafos e análises complexas (mais poderoso)
 #define MODELO_GEMINI_GRAFO "gemini-2.5-pro"

@@ -7,7 +7,7 @@
 
 body {
     font-family: 'Segoe UI', Tahoma, sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #f5f5f5;
     height: 100vh;
     display: flex;
     flex-direction: column;
@@ -109,18 +109,14 @@ body {
 .welcome-logo {
     width: 120px;
     height: 120px;
-    filter: drop-shadow(0 4px 12px rgba(102, 126, 234, 0.3));
+    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.1));
 }
 
 .welcome-title {
     font-size: 72px;
     font-weight: bold;
     letter-spacing: -5px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    text-shadow: 2px 2px 8px rgba(102, 126, 234, 0.3);
+    color: #333;
 }
 
 .welcome-subtitle {
@@ -159,35 +155,32 @@ body {
     width: 100%;
     padding: 15px 15px 15px 50px;
     border: 2px solid #e0e0e0;
-    border-radius: 30px;
+    border-radius: 8px;
     font-size: 16px;
     outline: none;
     transition: all 0.3s;
 }
 
 #welcome-cidade-input:focus {
-    border-color: #667eea;
-    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+    border-color: #333;
+    box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.05);
 }
 
 .welcome-btn {
     width: 100%;
     padding: 15px 30px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #333;
     color: white;
     border: none;
-    border-radius: 30px;
+    border-radius: 8px;
     font-size: 18px;
-    font-weight: bold;
+    font-weight: 500;
     cursor: pointer;
-    transition: transform 0.3s, box-shadow 0.3s;
-    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    transition: background 0.3s;
 }
 
 .welcome-btn:hover {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    background: #444;
 }
 
 .welcome-btn:active {
@@ -226,7 +219,7 @@ body {
 
 .c-lang {
     font-weight: bold;
-    color: #667eea;
+    color: #555;
     font-family: 'Courier New', monospace;
     font-size: 18px;
 }
@@ -298,27 +291,25 @@ body {
 }
 
 #header h1 {
-    color: #667eea;
+    color: #333;
     font-size: 28px;
     flex: 1;
 }
 
 #btn-creditos {
     padding: 8px 16px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #333;
     color: white;
     border: none;
-    border-radius: 20px;
+    border-radius: 6px;
     cursor: pointer;
-    font-weight: bold;
+    font-weight: 500;
     font-size: 14px;
-    transition: 0.3s;
-    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+    transition: background 0.3s;
 }
 
 #btn-creditos:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    background: #444;
 }
 
 /* ===== MODAL DE CRÉDITOS ===== */
@@ -348,12 +339,12 @@ body {
 .modal-content {
     background: white;
     padding: 40px;
-    border-radius: 20px;
+    border-radius: 12px;
     max-width: 500px;
     width: 90%;
     max-height: 80vh;
     overflow-y: auto;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
     animation: slideUp 0.4s ease-out;
     position: relative;
     scrollbar-width: none; /* Firefox */
@@ -392,7 +383,7 @@ body {
 }
 
 .modal-close:hover {
-    color: #667eea;
+    color: #333;
     transform: rotate(90deg);
 }
 
@@ -404,10 +395,7 @@ body {
 }
 
 .creditos-header h2 {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: #333;
     font-size: 28px;
     margin-top: 15px;
 }
@@ -417,7 +405,7 @@ body {
 }
 
 .creditos-section h3 {
-    color: #667eea;
+    color: #555;
     font-size: 18px;
     margin-bottom: 10px;
     display: flex;
@@ -474,44 +462,43 @@ body {
 #cidade-input {
     padding: 8px 12px;
     border: 2px solid #ddd;
-    border-radius: 20px;
+    border-radius: 6px;
     font-size: 14px;
     outline: none;
     width: 200px;
 }
 
 #cidade-input:focus {
-    border-color: #667eea;
+    border-color: #333;
 }
 
 #btn-atualizar-clima {
     padding: 8px 16px;
-    background: #3498db;
+    background: #555;
     color: white;
     border: none;
-    border-radius: 20px;
+    border-radius: 6px;
     cursor: pointer;
-    font-weight: bold;
+    font-weight: 500;
     font-size: 14px;
-    transition: 0.3s;
+    transition: background 0.3s;
 }
 
 #btn-atualizar-clima:hover {
-    background: #2980b9;
-    transform: translateY(-2px);
+    background: #666;
 }
 
 #info-comandos {
-    background: rgba(52, 152, 219, 0.1);
+    background: #f5f5f5;
     padding: 10px;
-    border-radius: 10px;
+    border-radius: 8px;
     margin-top: 10px;
     font-size: 13px;
     color: #555;
 }
 
 #info-comandos b {
-    color: #3498db;
+    color: #333;
 }
 
 #chat-container {
@@ -550,12 +537,12 @@ body {
 .message-bubble {
     max-width: 70%;
     padding: 12px 18px;
-    border-radius: 18px;
+    border-radius: 8px;
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 
 .message.user .message-bubble {
-    background: #667eea;
+    background: #333;
     color: white;
 }
 
@@ -582,29 +569,28 @@ body {
     flex: 1;
     padding: 12px;
     border: 2px solid #ddd;
-    border-radius: 25px;
+    border-radius: 8px;
     font-size: 14px;
     outline: none;
 }
 
 #input-text:focus {
-    border-color: #667eea;
+    border-color: #333;
 }
 
 button {
     padding: 12px 24px;
-    background: #667eea;
+    background: #333;
     color: white;
     border: none;
-    border-radius: 25px;
+    border-radius: 8px;
     cursor: pointer;
-    font-weight: bold;
-    transition: 0.3s;
+    font-weight: 500;
+    transition: background 0.3s;
 }
 
 button:hover {
-    background: #5568d3;
-    transform: translateY(-2px);
+    background: #444;
 }
 
 #btn-limpar {
@@ -614,3 +600,5 @@ button:hover {
 #btn-limpar:hover {
     background: #c0392b;
 }
+
+

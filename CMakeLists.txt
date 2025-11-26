@@ -62,7 +62,7 @@ target_include_directories(GenieC PRIVATE
 
 # Mensagens de build
 message(STATUS "====================================")
-message(STATUS "GenieC - Versão 2.0 (Modular)")
+message(STATUS "GenieC - Versão 2.1 (Modular)")
 message(STATUS "====================================")
 message(STATUS "Configuração: ${CMAKE_BUILD_TYPE}")
 message(STATUS "Compilador C: ${CMAKE_C_COMPILER}")
