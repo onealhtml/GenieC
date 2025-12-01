@@ -9,11 +9,15 @@
 #include <stdlib.h>
 #include <string.h>
 #include <locale.h>
+#ifdef _WIN32
 #include <windows.h>
+#endif
 #include <cjson/cJSON.h>
 #include "webview/webview.h"
 
+#ifdef _WIN32
 #define IDI_ICON1 101
+#endif
 
 #include "src/clima.h"
 #include "src/env_loader.h"
@@ -477,6 +481,7 @@ int main() {
     webview_set_title(w, "GenieC - Assistente Inteligente");
     webview_set_size(w, 1000, 700, WEBVIEW_HINT_NONE);
 
+#ifdef _WIN32
     // Obter o handle da janela nativa
     HWND hwnd = (HWND)webview_get_window(w);
 
@@ -488,6 +493,7 @@ int main() {
     } else {
         fprintf(stderr, "[AVISO] Não foi possível carregar o ícone do recurso\n");
     }
+#endif
 
     // **IMPORTANTE**: Registra callback ANTES de carregar o HTML
     fprintf(stderr, "[INFO] Registrando callback RPC...\n");
