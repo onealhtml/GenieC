@@ -541,6 +541,12 @@ body {
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 
+/* Balão de mensagem com mapa - Tamanho fixo */
+.message-bubble.has-map {
+    max-width: 900px;
+    width: 900px;
+}
+
 .message.user .message-bubble {
     background: #333;
     color: white;

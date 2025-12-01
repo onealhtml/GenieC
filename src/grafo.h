@@ -6,10 +6,10 @@
 
 typedef struct {
     char nome[MAX_NOME_CIDADE];
-    int adjacencias[MAX_CIDADES];  // Distâncias em km (-1 = sem conexão)
+    int adjacencias[MAX_CIDADES];   // Distâncias em km (-1 = sem conexão)
     double latitude;                // Coordenada geográfica
     double longitude;               // Coordenada geográfica
-    int coords_validas;            // Flag: 1 se coordenadas foram carregadas
+    int coords_validas;             // Flag: 1 se coordenadas foram carregadas
 } Cidade;
 
 typedef struct {
@@ -33,4 +33,3 @@ int salvar_coordenadas_grafo(Grafo* g, const char* arquivo);
 int carregar_coordenadas_grafo(Grafo* g, const char* arquivo);
 
 #endif // GRAFO_H
-

@@ -5,6 +5,27 @@
 #include <string.h>
 #include <limits.h>
 
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <sys/time.h>
+#endif
+
+// Função auxiliar para obter tempo em microsegundos (alta precisão)
+static double obter_tempo_ms() {
+#ifdef _WIN32
+    LARGE_INTEGER frequency;
+    LARGE_INTEGER start;
+    QueryPerformanceFrequency(&frequency);
+    QueryPerformanceCounter(&start);
+    return (double)start.QuadPart / (double)frequency.QuadPart * 1000.0;
+#else
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    return (double)(tv.tv_sec * 1000.0 + tv.tv_usec / 1000.0);
+#endif
+}
+
 Grafo* criar_grafo() {
     Grafo* g = (Grafo*)malloc(sizeof(Grafo));
     if (!g) return NULL;
@@ -110,6 +131,9 @@ char* calcular_menor_caminho(Grafo* g, const char* origem, const char* destino) 
     }
     dist[idx_origem] = 0;
 
+    // Inicia medição de tempo do Dijkstra (Matriz de Adjacência) - Alta Precisão
+    double tempo_inicio = obter_tempo_ms();
+
     // Algoritmo de Dijkstra
     for (int count = 0; count < g->num_cidades - 1; count++) {
         int min_dist = INT_MAX;
@@ -137,6 +161,13 @@ char* calcular_menor_caminho(Grafo* g, const char* origem, const char* destino) 
             }
         }
     }
+
+    // Finaliza medição de tempo do Dijkstra
+    double tempo_fim = obter_tempo_ms();
+    double tempo_execucao = tempo_fim - tempo_inicio; // em milissegundos
+
+    fprintf(stderr, "[PERFORMANCE] Dijkstra (Matriz de Adjacência) - Tempo: %.6f ms | Cidades: %d\n",
+            tempo_execucao, g->num_cidades);
 
     // Verifica se encontrou caminho
     if (dist[idx_destino] == INT_MAX) {
@@ -290,8 +321,23 @@ char* gerar_mapa_grafo(Grafo* g) {
     static int mapa_counter = 0;
     mapa_counter++;
 
+    // Conta estatísticas do grafo
+    int total_conexoes = 0;
+    for (int i = 0; i < g->num_cidades; i++) {
+        for (int j = i + 1; j < g->num_cidades; j++) {
+            if (g->cidades[i].adjacencias[j] != -1) {
+                total_conexoes++;
+            }
+        }
+    }
+
     snprintf(resultado, 32768,
         "🗺️ <b>Mapa Interativo das Rotas</b><br><br>"
+        "📊 <b>Estatísticas da Malha Rodoviária:</b><br>"
+        "🏙️ <b>Total de Cidades:</b> %d<br>"
+        "🛣️ <b>Total de Conexões:</b> %d<br>"
+        "📍 <b>Visualização:</b> Todas as rotas e conexões entre cidades<br><br>"
+        "🗺️ <b>Mapa Completo da Rede:</b><br>"
         "<div id='mapa-container-%d' style='width: 100%%; height: 500px; border: 2px solid #2196F3; border-radius: 8px; margin: 10px 0;'></div>"
         "<script>"
         "(function() {"
@@ -312,7 +358,7 @@ char* gerar_mapa_grafo(Grafo* g) {
         "    }).addTo(window.mapaGrafo_%d);"
         "    console.log('Mapa do grafo criado com sucesso!');"
         "    var allMarkers = [];"
-        , mapa_counter, mapa_counter, mapa_counter, mapa_counter, mapa_counter, mapa_counter, mapa_counter);
+        , g->num_cidades, total_conexoes, mapa_counter, mapa_counter, mapa_counter, mapa_counter, mapa_counter, mapa_counter, mapa_counter);
 
     // OTIMIZAÇÃO: Obtém todas as coordenadas em UMA ÚNICA requisição
     // Nota: Coordenadas já foram carregadas no início do programa
@@ -445,6 +491,9 @@ char* calcular_menor_caminho_com_mapa(Grafo* g, const char* origem, const char* 
     }
     dist[idx_origem] = 0;
 
+    // Inicia medição de tempo do Dijkstra (Matriz de Adjacência) - Alta Precisão
+    double tempo_inicio = obter_tempo_ms();
+
     // Dijkstra
     for (int count = 0; count < g->num_cidades - 1; count++) {
         int min_dist = INT_MAX;
@@ -470,6 +519,13 @@ char* calcular_menor_caminho_com_mapa(Grafo* g, const char* origem, const char* 
             }
         }
     }
+
+    // Finaliza medição de tempo do Dijkstra
+    double tempo_fim = obter_tempo_ms();
+    double tempo_execucao = tempo_fim - tempo_inicio; // em milissegundos
+
+    fprintf(stderr, "[PERFORMANCE] Dijkstra com Mapa (Matriz de Adjacência) - Tempo: %.6f ms | Cidades: %d\n",
+            tempo_execucao, g->num_cidades);
 
     if (dist[idx_destino] == INT_MAX) {
         return strdup("❌ <b>Não há caminho entre as cidades</b>");

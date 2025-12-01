@@ -145,6 +145,12 @@ function adicionarMensagemHTML(sender, html, isUser) {
     msgDiv.className = 'message ' + (isUser ? 'user' : 'assistant');
     const bubble = document.createElement('div');
     bubble.className = 'message-bubble';
+
+    // Detecta se a mensagem contém um mapa (id começando com 'mapa-')
+    if (html.includes("id='mapa-") || html.includes('id="mapa-') || html.includes("id='mapa_") || html.includes('id="mapa_')) {
+        bubble.classList.add('has-map');
+    }
+
     const senderEl = document.createElement('div');
     senderEl.className = 'message-sender';
     senderEl.textContent = sender;
