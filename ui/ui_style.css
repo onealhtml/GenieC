@@ -273,6 +273,15 @@ body {
     gap: 12px;
     margin-bottom: 10px;
     position: relative;
+    flex-wrap: wrap;
+}
+
+.header-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+    flex-wrap: wrap;
 }
 
 .logo-svg {
@@ -335,7 +344,6 @@ body {
     min-width: 45px;
     padding: 10px;
     font-size: 18px;
-    margin-right: 8px;
 }
 
 #btn-tema:hover {
@@ -347,7 +355,6 @@ body {
 #btn-grafos {
     background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
     box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
-    margin-right: 8px;
 }
 
 #btn-grafos:hover {
@@ -492,21 +499,21 @@ body {
 #clima-container {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 15px;
     margin-top: 10px;
-    flex-wrap: wrap;
 }
 
 #clima-info {
     color: var(--text-secondary);
     font-size: 16px;
-    flex: 1;
     min-width: 200px;
 }
 
 #cidade-input-group {
     display: flex;
     gap: 8px;
+    align-items: center;
 }
 
 #cidade-input {
@@ -515,7 +522,8 @@ body {
     border-radius: 6px;
     font-size: 14px;
     outline: none;
-    width: 200px;
+    width: 173px;
+    height: 38px;
     transition: all 0.2s;
     background: var(--bg-input);
     color: var(--text-primary);
