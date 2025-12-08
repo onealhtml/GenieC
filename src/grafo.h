@@ -1,7 +1,7 @@
 #ifndef GRAFO_H
 #define GRAFO_H
 
-#define MAX_CIDADES 50
+#define MAX_CIDADES 100
 #define MAX_NOME_CIDADE 100
 
 typedef struct {

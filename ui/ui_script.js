@@ -105,52 +105,6 @@ function limparGrafo() {
     }
 }
 
-// ===== TOGGLE DE TEMA =====
-// ===== TOGGLE DE TEMA =====
-function toggleTema() {
-    const html = document.documentElement;
-    const temaAtual = html.getAttribute('data-theme');
-    const novoTema = temaAtual === 'dark' ? 'light' : 'dark';
-
-    html.setAttribute('data-theme', novoTema === 'light' ? '' : 'dark');
-
-    // Atualiza o ícone do botão
-    const btnTema = document.getElementById('btn-tema');
-    if (btnTema) {
-        btnTema.innerHTML = novoTema === 'dark' ? '☀️' : '🌙';
-        btnTema.title = novoTema === 'dark' ? 'Mudar para tema claro' : 'Mudar para tema escuro';
-    }
-
-    // Salva preferência
-    localStorage.setItem('tema', novoTema);
-}
-
-// Carrega tema salvo ao iniciar
-document.addEventListener('DOMContentLoaded', function() {
-    const temaSalvo = localStorage.getItem('tema');
-    if (temaSalvo === 'dark') {
-        document.documentElement.setAttribute('data-theme', 'dark');
-        const btnTema = document.getElementById('btn-tema');
-        if (btnTema) {
-            btnTema.innerHTML = '☀️';
-            btnTema.title = 'Mudar para tema claro';
-        }
-    }
-});
-
-// Carrega tema salvo ao iniciar
-document.addEventListener('DOMContentLoaded', function() {
-    const temaSalvo = localStorage.getItem('tema');
-    if (temaSalvo === 'light') {
-        document.documentElement.setAttribute('data-theme', 'light');
-        const btnTema = document.getElementById('btn-tema');
-        if (btnTema) {
-            btnTema.innerHTML = '🌙';
-        }
-    }
-});
-
-
 // Salva o grafo em arquivo
 function salvarGrafo() {
     console.log('Salvando grafo...');
@@ -300,6 +254,7 @@ function adicionarMensagemHTML(sender, html, isUser) {
     const bubble = document.createElement('div');
     bubble.className = 'message-bubble';
 
+    // Detecta se a mensagem contém um mapa (id começando com 'mapa-')
     if (html.includes("id='mapa-") || html.includes('id="mapa-') || html.includes("id='mapa_") || html.includes('id="mapa_')) {
         bubble.classList.add('has-map');
     }
@@ -309,25 +264,21 @@ function adicionarMensagemHTML(sender, html, isUser) {
     senderEl.textContent = sender;
     const textEl = document.createElement('div');
     textEl.innerHTML = html;
-
-    // Remove estilos inline de cor
-    textEl.querySelectorAll('[style]').forEach(el => {
-        el.style.removeProperty('color');
-        el.style.removeProperty('background');
-        el.style.removeProperty('background-color');
-    });
-
     bubble.appendChild(senderEl);
     bubble.appendChild(textEl);
     msgDiv.appendChild(bubble);
     container.appendChild(msgDiv);
-
+    
+    // Aguarda um frame para garantir que o DOM foi atualizado
     requestAnimationFrame(() => {
         container.parentElement.scrollTop = container.parentElement.scrollHeight;
-
+        
+        // Processa scripts dentro do HTML (necessário para inicializar mapas)
         const scripts = textEl.querySelectorAll('script');
         scripts.forEach(script => {
             try {
+                // Usa eval para executar o script no contexto global
+                // Isso é necessário para que o Leaflet consiga acessar os elementos do DOM
                 const scriptCode = script.textContent;
                 console.log('Executando script do mapa...');
                 eval(scriptCode);
@@ -338,7 +289,6 @@ function adicionarMensagemHTML(sender, html, isUser) {
         });
     });
 }
-
 
 function enviarPergunta() {
     const input = document.getElementById('input-text');
@@ -397,37 +347,3 @@ if (!window.rpc || !window.rpc.call) {
 } else {
     console.log('window.rpc.call está disponível');
 }
-// ===== REMOVE ESTILOS INLINE DAS MENSAGENS =====
-function limparEstilosInline(elemento) {
-    elemento.querySelectorAll('[style*="color"]').forEach(el => {
-        el.style.removeProperty('color');
-    });
-    elemento.querySelectorAll('[style*="background"]').forEach(el => {
-        el.style.removeProperty('background');
-        el.style.removeProperty('background-color');
-    });
-}
-
-// Observer para limpar estilos quando novas mensagens são adicionadas
-const observerEstilos = new MutationObserver(function(mutations) {
-    mutations.forEach(function(mutation) {
-        mutation.addedNodes.forEach(function(node) {
-            if (node.nodeType === 1) {
-                if (node.classList && node.classList.contains('message')) {
-                    limparEstilosInline(node);
-                }
-            }
-        });
-    });
-});
-
-// Inicia o observer quando o DOM estiver pronto
-document.addEventListener('DOMContentLoaded', function() {
-    const chatContainer = document.getElementById('chat-messages');
-    if (chatContainer) {
-        observerEstilos.observe(chatContainer, {
-            childList: true,
-            subtree: true
-        });
-    }
-});
