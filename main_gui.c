@@ -310,7 +310,7 @@ void handle_rpc(const char *seq, const char *req, void *arg) {
                         // Mostra mensagem de processamento
                         webview_eval(w, "adicionarMensagemHTML('Sistema', "
                             "'🔄 <b>Consultando IA para obter distâncias...</b><br>"
-                            "⏳ Isso pode levar alguns segundos...', false);");
+                            "⏳ Isso pode levar alguns minutos...', false);");
 
                         fprintf(stderr, "[INFO GRAFO] Processando rota: %s -> %s\n", origem, destino);
                         fflush(stderr);
@@ -324,7 +324,7 @@ void handle_rpc(const char *seq, const char *req, void *arg) {
                                 "✅ <b>Malha de rotas criada!</b><br>"
                                 "🏙️ <b>%d cidades</b> mapeadas<br>"
                                 "🛣️ <b>%d conexões</b> adicionadas pela IA<br>"
-                                "🔍 Calculando menor caminho com Dijkstra...<br><br>",
+                                "🔍 Buscando coordenadas e calculando menor caminho com Dijkstra...<br><br>",
                                 g_grafo->num_cidades, conexoes);
 
                             char* js_code = (char*)malloc(2048);
@@ -514,7 +514,7 @@ void handle_rpc(const char *seq, const char *req, void *arg) {
             // Mostra mensagem de processamento
             webview_eval(w, "adicionarMensagemHTML('Sistema', "
                 "'🔄 <b>Consultando IA para obter distâncias...</b><br>"
-                "⏳ Isso pode levar alguns segundos...', false);");
+                "⏳ Isso pode levar alguns minutos...', false);");
 
             // Consulta a IA para preencher o grafo
             int conexoes = obter_distancias_ia_e_preencher_grafo(origem, destino, g_grafo);
