@@ -3,6 +3,114 @@
 // Variável para controlar se a transição já foi iniciada
 let transicaoIniciada = false;
 let callbackClimaCarregado = null;
+let painelGrafosAberto = false;
+
+// ===== FUNÇÕES DO PAINEL DE GRAFOS =====
+
+// Abre/fecha o painel lateral de grafos
+function togglePainelGrafos() {
+    const painel = document.getElementById('painel-grafos');
+    painelGrafosAberto = !painelGrafosAberto;
+
+    if (painelGrafosAberto) {
+        painel.classList.add('aberto');
+        // Atualiza estatísticas ao abrir
+        atualizarEstatisticasGrafo();
+    } else {
+        painel.classList.remove('aberto');
+    }
+}
+
+// Atualiza as estatísticas do grafo no painel
+function atualizarEstatisticasGrafo() {
+    console.log('Atualizando estatísticas do grafo...');
+    window.rpc.call('grafo_estatisticas', {_method: 'grafo_estatisticas'});
+}
+
+// Callback chamado pelo backend com as estatísticas
+function onEstatisticasGrafo(dados) {
+    try {
+        const stats = typeof dados === 'string' ? JSON.parse(dados) : dados;
+
+        document.getElementById('stat-cidades').textContent = stats.cidades || 0;
+        document.getElementById('stat-conexoes').textContent = stats.conexoes || 0;
+
+        // Atualiza lista de cidades
+        const listaCidades = document.getElementById('lista-cidades-grafo');
+
+        if (stats.listaCidades && stats.listaCidades.length > 0) {
+            listaCidades.innerHTML = stats.listaCidades.map(cidade => `
+                <div class="cidade-item">
+                    <span class="cidade-nome">${cidade.nome}</span>
+                    <span class="cidade-conexoes">${cidade.conexoes} conexões</span>
+                </div>
+            `).join('');
+        } else {
+            listaCidades.innerHTML = '<p class="lista-vazia">Nenhuma cidade adicionada</p>';
+        }
+    } catch (e) {
+        console.error('Erro ao processar estatísticas:', e);
+    }
+}
+
+// Calcula a rota entre origem e destino
+function calcularRotaGrafo() {
+    const origem = document.getElementById('grafo-origem').value.trim();
+    const destino = document.getElementById('grafo-destino').value.trim();
+
+    if (!origem || !destino) {
+        alert('Por favor, preencha origem e destino');
+        return;
+    }
+
+    console.log('Calculando rota:', origem, '->', destino);
+
+    // Fecha o painel para ver o resultado no chat
+    togglePainelGrafos();
+
+    // Mostra mensagem de processamento no chat
+    adicionarMensagemHTML('Você', `🗺️ Calcular rota: <b>${origem}</b> → <b>${destino}</b>`, true);
+
+    window.rpc.call('grafo_calcular_rota', {_method: 'grafo_calcular_rota', origem: origem, destino: destino});
+}
+
+// Visualiza o mapa completo do grafo
+function visualizarMapaGrafo() {
+    console.log('Visualizando mapa do grafo...');
+    togglePainelGrafos();
+    adicionarMensagemHTML('Você', '🗺️ Visualizar mapa do grafo', true);
+    window.rpc.call('grafo_visualizar_mapa', {_method: 'grafo_visualizar_mapa'});
+}
+
+// Lista todas as cidades do grafo
+function listarCidadesGrafo() {
+    console.log('Listando cidades do grafo...');
+    togglePainelGrafos();
+    adicionarMensagemHTML('Você', '📋 Listar cidades do grafo', true);
+    window.rpc.call('grafo_listar_cidades', {_method: 'grafo_listar_cidades'});
+}
+
+// Limpa o grafo
+function limparGrafo() {
+    if (confirm('⚠️ Tem certeza que deseja limpar todo o grafo?\n\nIsso removerá todas as cidades e conexões.')) {
+        console.log('Limpando grafo...');
+        window.rpc.call('grafo_limpar', {_method: 'grafo_limpar'});
+
+        // Atualiza estatísticas
+        setTimeout(() => {
+            atualizarEstatisticasGrafo();
+        }, 500);
+
+        adicionarMensagemHTML('Sistema', '🗑️ Grafo limpo com sucesso!', false);
+    }
+}
+
+// Salva o grafo em arquivo
+function salvarGrafo() {
+    console.log('Salvando grafo...');
+    window.rpc.call('grafo_salvar', {_method: 'grafo_salvar'});
+    adicionarMensagemHTML('Sistema', '💾 Grafo salvo com sucesso!', false);
+}
 
 // Função chamada pelo backend quando o clima é atualizado
 function onClimaAtualizado(sucesso, mensagem) {

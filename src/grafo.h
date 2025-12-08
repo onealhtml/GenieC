@@ -27,8 +27,10 @@ char* calcular_menor_caminho_com_mapa(Grafo* g, const char* origem, const char* 
 char* listar_cidades_grafo(Grafo* g);
 char* gerar_mapa_grafo(Grafo* g);
 void liberar_grafo(Grafo* g);
+void limpar_grafo(Grafo* g);
+char* obter_estatisticas_grafo(Grafo* g);
 
-// Funções para persistência de coordenadas
+// Funções para persistência de coordenadas e conexões
 int salvar_coordenadas_grafo(Grafo* g, const char* arquivo);
 int carregar_coordenadas_grafo(Grafo* g, const char* arquivo);
 

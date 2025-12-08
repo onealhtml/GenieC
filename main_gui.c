@@ -70,24 +70,54 @@ void handle_rpc(const char *seq, const char *req, void *arg) {
         fprintf(stderr, "[DEBUG] Request é um array\n");
         cJSON *first_item = cJSON_GetArrayItem(root, 0);
         if (first_item && cJSON_IsObject(first_item)) {
-            // Verifica se tem o campo "text"
-            cJSON *text_item = cJSON_GetObjectItemCaseSensitive(first_item, "text");
-            if (text_item && cJSON_IsString(text_item)) {
-                method = "pergunta";
-                texto = text_item->valuestring;
-                fprintf(stderr, "[DEBUG] Detectado array com text, assumindo método 'pergunta'\n");
+            // Primeiro verifica se tem o campo "_method" (usado pelas funções do grafo)
+            cJSON *_method_item = cJSON_GetObjectItemCaseSensitive(first_item, "_method");
+            if (_method_item && cJSON_IsString(_method_item)) {
+                method = _method_item->valuestring;
+                fprintf(stderr, "[DEBUG] Detectado _method: %s\n", method);
             }
-            // Verifica se tem o campo "cidade" (atualizar clima)
+            // Verifica se tem o campo "text"
             else {
-                cJSON *cidade_item = cJSON_GetObjectItemCaseSensitive(first_item, "cidade");
-                if (cidade_item && cJSON_IsString(cidade_item)) {
-                    method = "atualizar_clima";
-                    texto = cidade_item->valuestring;
-                    fprintf(stderr, "[DEBUG] Detectado array com cidade, assumindo método 'atualizar_clima'\n");
-                } else {
-                    // Objeto vazio = limpar
-                    method = "limpar";
-                    fprintf(stderr, "[DEBUG] Detectado array com objeto vazio, assumindo método 'limpar'\n");
+                cJSON *text_item = cJSON_GetObjectItemCaseSensitive(first_item, "text");
+                if (text_item && cJSON_IsString(text_item)) {
+                    method = "pergunta";
+                    texto = text_item->valuestring;
+                    fprintf(stderr, "[DEBUG] Detectado array com text, assumindo método 'pergunta'\n");
+                }
+                // Verifica se tem origem/destino (grafo)
+                else {
+                    cJSON *origem_item = cJSON_GetObjectItemCaseSensitive(first_item, "origem");
+                    cJSON *destino_item = cJSON_GetObjectItemCaseSensitive(first_item, "destino");
+                    if (origem_item && destino_item && cJSON_IsString(origem_item) && cJSON_IsString(destino_item)) {
+                        method = "grafo_calcular_rota";
+                        fprintf(stderr, "[DEBUG] Detectado array com origem/destino para grafo\n");
+                    }
+                    // Verifica se tem o campo "cidade" (atualizar clima)
+                    else {
+                        cJSON *cidade_item = cJSON_GetObjectItemCaseSensitive(first_item, "cidade");
+                        if (cidade_item && cJSON_IsString(cidade_item)) {
+                            method = "atualizar_clima";
+                            texto = cidade_item->valuestring;
+                            fprintf(stderr, "[DEBUG] Detectado array com cidade, assumindo método 'atualizar_clima'\n");
+                        }
+                        // Verifica se tem o campo "method" dentro do objeto (fallback RPC)
+                        else {
+                            cJSON *method_item = cJSON_GetObjectItemCaseSensitive(first_item, "method");
+                            if (method_item && cJSON_IsString(method_item)) {
+                                method = method_item->valuestring;
+                                fprintf(stderr, "[DEBUG] Detectado método dentro do array: %s\n", method);
+                            } else {
+                                // Verifica se o objeto tem algum campo - se não tiver, é um objeto vazio
+                                if (first_item->child == NULL) {
+                                    // Objeto realmente vazio e não é do grafo - assume limpar
+                                    method = "limpar";
+                                    fprintf(stderr, "[DEBUG] Detectado array com objeto vazio, assumindo método 'limpar'\n");
+                                } else {
+                                    fprintf(stderr, "[DEBUG] Objeto tem campos mas não reconhecidos\n");
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -303,6 +333,9 @@ void handle_rpc(const char *seq, const char *req, void *arg) {
                             webview_eval(w, js_code);
                             free(js_code);
 
+                            // Salva o grafo atualizado com coordenadas E conexões
+                            salvar_coordenadas_grafo(g_grafo, "coordenadas_grafo.txt");
+
                             // Calcula o menor caminho usando Dijkstra COM MAPA
                             char* resultado = calcular_menor_caminho_com_mapa(g_grafo, origem, destino);
 
@@ -315,6 +348,15 @@ void handle_rpc(const char *seq, const char *req, void *arg) {
 
                             free(js_code);
                             free(resultado);
+
+                            // Atualiza estatísticas no painel (se estiver aberto)
+                            char* stats = obter_estatisticas_grafo(g_grafo);
+                            js_code = (char*)malloc(strlen(stats) + 256);
+                            snprintf(js_code, strlen(stats) + 256,
+                                "if(typeof onEstatisticasGrafo === 'function') onEstatisticasGrafo(%s);", stats);
+                            webview_eval(w, js_code);
+                            free(js_code);
+                            free(stats);
                         } else {
                             webview_eval(w, "adicionarMensagemHTML('Sistema', "
                                 "'❌ Não foi possível obter distâncias da IA.<br>"
@@ -434,8 +476,164 @@ void handle_rpc(const char *seq, const char *req, void *arg) {
         webview_eval(w, "document.getElementById('chat-messages').innerHTML = '';"
                         "adicionarMensagem('GenieC', 'Olá! Sou o GenieC. Como posso ajudar?', false);");
         webview_return(w, seq, 0, "{}");
-    } else {
-        fprintf(stderr, "[AVISO] Método não reconhecido\n");
+    }
+    // ===== HANDLERS DO PAINEL DE GRAFOS =====
+    else if (method && strcmp(method, "grafo_estatisticas") == 0) {
+        fprintf(stderr, "[DEBUG] Obtendo estatísticas do grafo\n");
+        fflush(stderr);
+
+        char* stats = obter_estatisticas_grafo(g_grafo);
+
+        char* js_code = (char*)malloc(strlen(stats) + 256);
+        snprintf(js_code, strlen(stats) + 256,
+            "if(typeof onEstatisticasGrafo === 'function') onEstatisticasGrafo(%s);", stats);
+        webview_eval(w, js_code);
+
+        free(js_code);
+        free(stats);
+        webview_return(w, seq, 0, "{}");
+    }
+    else if (method && strcmp(method, "grafo_calcular_rota") == 0) {
+        fprintf(stderr, "[DEBUG] Calculando rota via painel de grafos\n");
+        fflush(stderr);
+
+        // Extrai origem e destino dos parâmetros
+        cJSON *first_item = cJSON_GetArrayItem(root, 0);
+        cJSON *origem_item = cJSON_GetObjectItemCaseSensitive(first_item, "origem");
+        cJSON *destino_item = cJSON_GetObjectItemCaseSensitive(first_item, "destino");
+
+        if (origem_item && destino_item &&
+            cJSON_IsString(origem_item) && cJSON_IsString(destino_item)) {
+
+            const char* origem = origem_item->valuestring;
+            const char* destino = destino_item->valuestring;
+
+            fprintf(stderr, "[INFO GRAFO] Processando rota via painel: %s -> %s\n", origem, destino);
+            fflush(stderr);
+
+            // Mostra mensagem de processamento
+            webview_eval(w, "adicionarMensagemHTML('Sistema', "
+                "'🔄 <b>Consultando IA para obter distâncias...</b><br>"
+                "⏳ Isso pode levar alguns segundos...', false);");
+
+            // Consulta a IA para preencher o grafo
+            int conexoes = obter_distancias_ia_e_preencher_grafo(origem, destino, g_grafo);
+
+            if (conexoes > 0) {
+                char msg_sucesso[768];
+                snprintf(msg_sucesso, sizeof(msg_sucesso),
+                    "✅ <b>Malha de rotas criada!</b><br>"
+                    "🏙️ <b>%d cidades</b> mapeadas<br>"
+                    "🛣️ <b>%d conexões</b> adicionadas pela IA<br>"
+                    "🔍 Calculando menor caminho com Dijkstra...<br><br>",
+                    g_grafo->num_cidades, conexoes);
+
+                char* js_code = (char*)malloc(2048);
+                snprintf(js_code, 2048,
+                    "adicionarMensagemHTML('Sistema', `%s`, false);", msg_sucesso);
+                webview_eval(w, js_code);
+                free(js_code);
+
+                // Salva o grafo atualizado
+                salvar_coordenadas_grafo(g_grafo, "coordenadas_grafo.txt");
+
+                // Calcula o menor caminho usando Dijkstra COM MAPA
+                char* resultado = calcular_menor_caminho_com_mapa(g_grafo, origem, destino);
+
+                size_t resultado_size = strlen(resultado) + 256;
+                js_code = (char*)malloc(resultado_size);
+                snprintf(js_code, resultado_size,
+                    "adicionarMensagemHTML('GenieC', `%s`, false);", resultado);
+                webview_eval(w, js_code);
+
+                free(js_code);
+                free(resultado);
+
+                // Atualiza estatísticas no painel (se estiver aberto)
+                char* stats = obter_estatisticas_grafo(g_grafo);
+                js_code = (char*)malloc(strlen(stats) + 256);
+                snprintf(js_code, strlen(stats) + 256,
+                    "if(typeof onEstatisticasGrafo === 'function') onEstatisticasGrafo(%s);", stats);
+                webview_eval(w, js_code);
+                free(js_code);
+                free(stats);
+            } else {
+                webview_eval(w, "adicionarMensagemHTML('Sistema', "
+                    "'❌ Não foi possível obter distâncias da IA.<br>"
+                    "Verifique se as cidades são válidas.', false);");
+            }
+        } else {
+            webview_eval(w, "adicionarMensagemHTML('Sistema', "
+                "'❌ Parâmetros inválidos. Informe origem e destino.', false);");
+        }
+
+        webview_return(w, seq, 0, "{}");
+    }
+    else if (method && strcmp(method, "grafo_visualizar_mapa") == 0) {
+        fprintf(stderr, "[DEBUG] Visualizando mapa do grafo via painel\n");
+        fflush(stderr);
+
+        char* resultado = gerar_mapa_grafo(g_grafo);
+
+        size_t js_size = strlen(resultado) + 256;
+        char* js_code = (char*)malloc(js_size);
+        snprintf(js_code, js_size,
+            "adicionarMensagemHTML('Sistema', `%s`, false);", resultado);
+        webview_eval(w, js_code);
+
+        free(js_code);
+        free(resultado);
+        webview_return(w, seq, 0, "{}");
+    }
+    else if (method && strcmp(method, "grafo_listar_cidades") == 0) {
+        fprintf(stderr, "[DEBUG] Listando cidades do grafo via painel\n");
+        fflush(stderr);
+
+        char* resultado = listar_cidades_grafo(g_grafo);
+
+        size_t js_size = strlen(resultado) + 256;
+        char* js_code = (char*)malloc(js_size);
+        snprintf(js_code, js_size,
+            "adicionarMensagemHTML('Sistema', `%s`, false);", resultado);
+        webview_eval(w, js_code);
+
+        free(js_code);
+        free(resultado);
+        webview_return(w, seq, 0, "{}");
+    }
+    else if (method && strcmp(method, "grafo_limpar") == 0) {
+        fprintf(stderr, "[DEBUG] Limpando grafo via painel\n");
+        fflush(stderr);
+
+        limpar_grafo(g_grafo);
+
+        // Remove o arquivo de coordenadas também
+        remove("coordenadas_grafo.txt");
+
+        // Envia estatísticas zeradas para o painel
+        webview_eval(w, "if(typeof onEstatisticasGrafo === 'function') onEstatisticasGrafo({cidades: 0, conexoes: 0, listaCidades: []});");
+
+        webview_return(w, seq, 0, "{}");
+    }
+    else if (method && strcmp(method, "grafo_salvar") == 0) {
+        fprintf(stderr, "[DEBUG] Salvando grafo via painel\n");
+        fflush(stderr);
+
+        int salvos = salvar_coordenadas_grafo(g_grafo, "coordenadas_grafo.txt");
+
+        char msg[256];
+        snprintf(msg, sizeof(msg),
+            "💾 Grafo salvo com sucesso!<br>📊 %d cidades salvas.", salvos);
+
+        char js_code[512];
+        snprintf(js_code, sizeof(js_code),
+            "adicionarMensagemHTML('Sistema', '%s', false);", msg);
+        webview_eval(w, js_code);
+
+        webview_return(w, seq, 0, "{}");
+    }
+    else {
+        fprintf(stderr, "[AVISO] Método não reconhecido: %s\n", method ? method : "(null)");
         fflush(stderr);
         webview_return(w, seq, 0, "{}");
     }

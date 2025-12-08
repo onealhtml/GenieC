@@ -9,7 +9,7 @@
 #define MODELO_GEMINI_CHAT "gemini-2.5-flash-preview-09-2025"
 
 // Modelo para grafos e análises complexas (mais poderoso)
-#define MODELO_GEMINI_GRAFO "gemini-2.5-pro"
+#define MODELO_GEMINI_GRAFO "gemini-3-pro-preview"
 
 // Modelo padrão (compatibilidade)
 #define MODELO_GEMINI MODELO_GEMINI_CHAT
@@ -29,8 +29,8 @@
 
 #define MAX_RETRIES 3
 #define INITIAL_RETRY_DELAY 1000  // 1 segundo em ms
-#define HTTP_TIMEOUT 90L          // 30 segundos
-#define HTTP_CONNECT_TIMEOUT 30L  // 10 segundos
+#define HTTP_TIMEOUT 120L          // 30 segundos
+#define HTTP_CONNECT_TIMEOUT 60L  // 10 segundos
 
 // ============================================================================
 // PROMPTS DO SISTEMA
@@ -63,12 +63,18 @@
 "4. Distâncias entre cidades VIZINHAS (adjacentes), não diretas\n" \
 "5. Cada trecho deve ter 50-300 km (trechos curtos, realistas)\n" \
 "6. Siga rodovias principais (BR-101, BR-116, BR-381, etc)\n\n" \
+"NORMALIZAÇÃO DE NOMES (CRÍTICO):\n" \
+"- SEMPRE use os nomes das cidades EXATAMENTE como informado pelo usuário\n" \
+"- Se o usuário escreveu 'Sao Paulo' (sem acento), use 'Sao Paulo' na resposta\n" \
+"- Se o usuário escreveu 'São Paulo' (com acento), use 'São Paulo' na resposta\n" \
+"- NUNCA corrija ou altere a grafia das cidades de origem e destino\n" \
+"- Para cidades intermediárias, prefira nomes SEM ACENTOS para compatibilidade\n\n" \
 "FORMATO OBRIGATÓRIO (uma linha por conexão):\n" \
 "CidadeA-CidadeB:XXX\n\n" \
 "EXEMPLO DE MALHA REAL:\n" \
-"São Paulo-São José dos Campos:85\n" \
-"São José dos Campos-Taubaté:45\n" \
-"Taubaté-Resende:115\n" \
+"Sao Paulo-Sao Jose dos Campos:85\n" \
+"Sao Jose dos Campos-Taubate:45\n" \
+"Taubate-Resende:115\n" \
 "Resende-Volta Redonda:35\n" \
 "Volta Redonda-Barra Mansa:15\n" \
 "Barra Mansa-Rio de Janeiro:128\n\n" \
@@ -78,6 +84,9 @@
 // Prompt para obter coordenadas de uma única cidade
 #define PROMPT_COORDENADAS_UNICA \
 "Qual a coordenada geográfica exata de %s?\n\n" \
+"INTERPRETAÇÃO DO NOME:\n" \
+"- Aceite variações com ou sem acentos (ex: 'Sao Paulo' = 'São Paulo')\n" \
+"- Identifique a cidade correta mesmo com pequenos erros de digitação\n\n" \
 "RESPONDA APENAS NO FORMATO:\n" \
 "LAT:valor_latitude\n" \
 "LNG:valor_longitude\n\n" \
@@ -92,8 +101,12 @@
 "%s\n\n" \
 "RESPONDA APENAS NO FORMATO (uma cidade por linha):\n" \
 "CIDADE|LAT:valor|LNG:valor\n\n" \
+"REGRAS CRÍTICAS:\n" \
+"- Use o NOME EXATO da cidade como foi informado na lista acima\n" \
+"- NÃO adicione ou remova acentos dos nomes\n" \
+"- Se na lista está 'Sao Paulo', responda 'Sao Paulo', NÃO 'São Paulo'\n\n" \
 "EXEMPLO:\n" \
-"São Paulo|LAT:-23.5505|LNG:-46.6333\n" \
+"Sao Paulo|LAT:-23.5505|LNG:-46.6333\n" \
 "Rio de Janeiro|LAT:-22.9068|LNG:-43.1729\n" \
 "Curitiba|LAT:-25.4284|LNG:-49.2733\n\n" \
 "IMPORTANTE:\n" \

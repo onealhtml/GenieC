@@ -7,6 +7,7 @@
 
 #ifdef _WIN32
 #include <windows.h>
+#include <time.h>
 #else
 #include <sys/time.h>
 #endif
@@ -104,6 +105,8 @@ void adicionar_aresta(Grafo* g, const char* cidade1, const char* cidade2, int di
 
 // Algoritmo de Dijkstra para encontrar o menor caminho
 char* calcular_menor_caminho(Grafo* g, const char* origem, const char* destino) {
+    time_t inicio, fim;
+
     if (!g || !origem || !destino) {
         return strdup("❌ Erro: parâmetros inválidos");
     }
@@ -132,7 +135,8 @@ char* calcular_menor_caminho(Grafo* g, const char* origem, const char* destino) 
     dist[idx_origem] = 0;
 
     // Inicia medição de tempo do Dijkstra (Matriz de Adjacência) - Alta Precisão
-    double tempo_inicio = obter_tempo_ms();
+    // double tempo_inicio = obter_tempo_ms();
+    time(&inicio);
 
     // Algoritmo de Dijkstra
     for (int count = 0; count < g->num_cidades - 1; count++) {
@@ -163,10 +167,12 @@ char* calcular_menor_caminho(Grafo* g, const char* origem, const char* destino) 
     }
 
     // Finaliza medição de tempo do Dijkstra
-    double tempo_fim = obter_tempo_ms();
-    double tempo_execucao = tempo_fim - tempo_inicio; // em milissegundos
+    //double tempo_fim = obter_tempo_ms();
 
-    fprintf(stderr, "[PERFORMANCE] Dijkstra (Matriz de Adjacência) - Tempo: %.6f ms | Cidades: %d\n",
+    time(&fim);
+
+    long double tempo_execucao = difftime(fim,inicio);
+    fprintf(stderr, "[PERFORMANCE] Dijkstra (Matriz de Adjacência) - Tempo: %.6Lf ms | Cidades: %d\n",
             tempo_execucao, g->num_cidades);
 
     // Verifica se encontrou caminho
@@ -726,7 +732,68 @@ void liberar_grafo(Grafo* g) {
     }
 }
 
-// Salva as coordenadas do grafo em arquivo
+// Limpa o grafo sem liberar a memória (reseta para estado inicial)
+void limpar_grafo(Grafo* g) {
+    if (!g) return;
+
+    g->num_cidades = 0;
+
+    // Reinicializa todas as cidades
+    for (int i = 0; i < MAX_CIDADES; i++) {
+        g->cidades[i].nome[0] = '\0';
+        g->cidades[i].latitude = 0.0;
+        g->cidades[i].longitude = 0.0;
+        g->cidades[i].coords_validas = 0;
+        for (int j = 0; j < MAX_CIDADES; j++) {
+            g->cidades[i].adjacencias[j] = -1;
+        }
+    }
+
+    fprintf(stderr, "[INFO GRAFO] Grafo limpo com sucesso\n");
+}
+
+// Retorna estatísticas do grafo em formato HTML
+char* obter_estatisticas_grafo(Grafo* g) {
+    if (!g) {
+        return strdup("{\"cidades\": 0, \"conexoes\": 0}");
+    }
+
+    // Conta conexões
+    int total_conexoes = 0;
+    for (int i = 0; i < g->num_cidades; i++) {
+        for (int j = i + 1; j < g->num_cidades; j++) {
+            if (g->cidades[i].adjacencias[j] != -1) {
+                total_conexoes++;
+            }
+        }
+    }
+
+    // Monta JSON com estatísticas
+    char* resultado = (char*)malloc(4096);
+    snprintf(resultado, 4096,
+        "{\"cidades\": %d, \"conexoes\": %d, \"listaCidades\": [",
+        g->num_cidades, total_conexoes);
+
+    for (int i = 0; i < g->num_cidades; i++) {
+        char cidade_json[256];
+        int num_conexoes = 0;
+        for (int j = 0; j < g->num_cidades; j++) {
+            if (g->cidades[i].adjacencias[j] != -1) num_conexoes++;
+        }
+
+        snprintf(cidade_json, sizeof(cidade_json),
+            "%s{\"nome\": \"%s\", \"conexoes\": %d}",
+            i > 0 ? ", " : "",
+            g->cidades[i].nome,
+            num_conexoes);
+        strcat(resultado, cidade_json);
+    }
+
+    strcat(resultado, "]}");
+    return resultado;
+}
+
+// Salva as coordenadas e conexões do grafo em arquivo
 int salvar_coordenadas_grafo(Grafo* g, const char* arquivo) {
     if (!g || !arquivo) return 0;
 
@@ -736,10 +803,24 @@ int salvar_coordenadas_grafo(Grafo* g, const char* arquivo) {
         return 0;
     }
 
-    fprintf(f, "# Coordenadas do Grafo GenieC\n");
-    fprintf(f, "# Formato: CIDADE|LATITUDE|LONGITUDE\n");
-    fprintf(f, "# Total de cidades: %d\n\n", g->num_cidades);
+    // Conta conexões
+    int total_conexoes = 0;
+    for (int i = 0; i < g->num_cidades; i++) {
+        for (int j = i + 1; j < g->num_cidades; j++) {
+            if (g->cidades[i].adjacencias[j] != -1) {
+                total_conexoes++;
+            }
+        }
+    }
 
+    fprintf(f, "# Grafo GenieC - Coordenadas e Conexões\n");
+    fprintf(f, "# Formato Cidade: CIDADE|LATITUDE|LONGITUDE\n");
+    fprintf(f, "# Formato Conexão: CONEXAO|CIDADE1|CIDADE2|DISTANCIA_KM\n");
+    fprintf(f, "# Total de cidades: %d\n", g->num_cidades);
+    fprintf(f, "# Total de conexões: %d\n\n", total_conexoes);
+
+    // Salva coordenadas das cidades
+    fprintf(f, "# === CIDADES ===\n");
     int salvos = 0;
     for (int i = 0; i < g->num_cidades; i++) {
         if (g->cidades[i].coords_validas) {
@@ -748,26 +829,46 @@ int salvar_coordenadas_grafo(Grafo* g, const char* arquivo) {
                 g->cidades[i].latitude,
                 g->cidades[i].longitude);
             salvos++;
+        } else {
+            // Salva cidade sem coordenadas (lat/lng = 0)
+            fprintf(f, "%s|0.000000|0.000000\n", g->cidades[i].nome);
+            salvos++;
+        }
+    }
+
+    // Salva conexões (arestas)
+    fprintf(f, "\n# === CONEXÕES ===\n");
+    int conexoes_salvas = 0;
+    for (int i = 0; i < g->num_cidades; i++) {
+        for (int j = i + 1; j < g->num_cidades; j++) {
+            if (g->cidades[i].adjacencias[j] != -1) {
+                fprintf(f, "CONEXAO|%s|%s|%d\n",
+                    g->cidades[i].nome,
+                    g->cidades[j].nome,
+                    g->cidades[i].adjacencias[j]);
+                conexoes_salvas++;
+            }
         }
     }
 
     fclose(f);
-    fprintf(stderr, "[INFO COORDS] %d coordenadas salvas em: %s\n", salvos, arquivo);
+    fprintf(stderr, "[INFO GRAFO] Salvo: %d cidades, %d conexões em: %s\n", salvos, conexoes_salvas, arquivo);
     return salvos;
 }
 
-// Carrega as coordenadas do grafo de arquivo
+// Carrega as coordenadas e conexões do grafo de arquivo
 int carregar_coordenadas_grafo(Grafo* g, const char* arquivo) {
     if (!g || !arquivo) return 0;
 
     FILE* f = fopen(arquivo, "r");
     if (!f) {
-        fprintf(stderr, "[INFO COORDS] Arquivo de coordenadas não encontrado: %s (será criado ao salvar)\n", arquivo);
+        fprintf(stderr, "[INFO GRAFO] Arquivo não encontrado: %s (será criado ao salvar)\n", arquivo);
         return 0;
     }
 
     char linha[512];
-    int carregados = 0;
+    int cidades_carregadas = 0;
+    int conexoes_carregadas = 0;
 
     while (fgets(linha, sizeof(linha), f)) {
         // Ignora comentários e linhas vazias
@@ -776,49 +877,89 @@ int carregar_coordenadas_grafo(Grafo* g, const char* arquivo) {
         // Remove quebra de linha
         linha[strcspn(linha, "\r\n")] = 0;
 
-        // Parse: CIDADE|LATITUDE|LONGITUDE
-        char nome[MAX_NOME_CIDADE];
-        double lat, lng;
+        // Verifica se é uma linha de CONEXÃO
+        if (strncmp(linha, "CONEXAO|", 8) == 0) {
+            // Parse: CONEXAO|CIDADE1|CIDADE2|DISTANCIA
+            char* ptr = linha + 8; // Pula "CONEXAO|"
 
-        char* pipe1 = strchr(linha, '|');
-        if (!pipe1) continue;
+            char* pipe1 = strchr(ptr, '|');
+            if (!pipe1) continue;
 
-        char* pipe2 = strchr(pipe1 + 1, '|');
-        if (!pipe2) continue;
+            char* pipe2 = strchr(pipe1 + 1, '|');
+            if (!pipe2) continue;
 
-        // Extrai nome da cidade
-        size_t len = pipe1 - linha;
-        if (len >= MAX_NOME_CIDADE) len = MAX_NOME_CIDADE - 1;
-        strncpy(nome, linha, len);
-        nome[len] = '\0';
+            // Extrai cidade1
+            char cidade1[MAX_NOME_CIDADE];
+            size_t len1 = pipe1 - ptr;
+            if (len1 >= MAX_NOME_CIDADE) len1 = MAX_NOME_CIDADE - 1;
+            strncpy(cidade1, ptr, len1);
+            cidade1[len1] = '\0';
 
-        // Extrai coordenadas
-        lat = atof(pipe1 + 1);
-        lng = atof(pipe2 + 1);
+            // Extrai cidade2
+            char cidade2[MAX_NOME_CIDADE];
+            size_t len2 = pipe2 - (pipe1 + 1);
+            if (len2 >= MAX_NOME_CIDADE) len2 = MAX_NOME_CIDADE - 1;
+            strncpy(cidade2, pipe1 + 1, len2);
+            cidade2[len2] = '\0';
 
-        // Procura a cidade no grafo e atualiza coordenadas
-        int idx = encontrar_cidade(g, nome);
-        if (idx != -1) {
-            // Cidade já existe no grafo - apenas atualiza coordenadas
-            g->cidades[idx].latitude = lat;
-            g->cidades[idx].longitude = lng;
-            g->cidades[idx].coords_validas = 1;
-            carregados++;
-            fprintf(stderr, "[DEBUG COORDS] Carregado: %s (%.4f, %.4f)\n", nome, lat, lng);
-        } else if (g->num_cidades < MAX_CIDADES) {
-            // Cidade não existe - adiciona com coordenadas
-            adicionar_cidade(g, nome);
-            idx = g->num_cidades - 1;
-            g->cidades[idx].latitude = lat;
-            g->cidades[idx].longitude = lng;
-            g->cidades[idx].coords_validas = 1;
-            carregados++;
-            fprintf(stderr, "[DEBUG COORDS] Adicionado ao grafo: %s (%.4f, %.4f)\n", nome, lat, lng);
+            // Extrai distância
+            int distancia = atoi(pipe2 + 1);
+
+            if (distancia > 0) {
+                adicionar_aresta(g, cidade1, cidade2, distancia);
+                conexoes_carregadas++;
+                fprintf(stderr, "[DEBUG GRAFO] Conexão carregada: %s - %s: %d km\n", cidade1, cidade2, distancia);
+            }
+        } else {
+            // Parse de coordenada: CIDADE|LATITUDE|LONGITUDE
+            char nome[MAX_NOME_CIDADE];
+            double lat, lng;
+
+            char* pipe1 = strchr(linha, '|');
+            if (!pipe1) continue;
+
+            char* pipe2 = strchr(pipe1 + 1, '|');
+            if (!pipe2) continue;
+
+            // Extrai nome da cidade
+            size_t len = pipe1 - linha;
+            if (len >= MAX_NOME_CIDADE) len = MAX_NOME_CIDADE - 1;
+            strncpy(nome, linha, len);
+            nome[len] = '\0';
+
+            // Extrai coordenadas
+            lat = atof(pipe1 + 1);
+            lng = atof(pipe2 + 1);
+
+            // Procura a cidade no grafo e atualiza coordenadas
+            int idx = encontrar_cidade(g, nome);
+            if (idx != -1) {
+                // Cidade já existe no grafo - apenas atualiza coordenadas
+                if (lat != 0.0 || lng != 0.0) {
+                    g->cidades[idx].latitude = lat;
+                    g->cidades[idx].longitude = lng;
+                    g->cidades[idx].coords_validas = 1;
+                }
+                cidades_carregadas++;
+                fprintf(stderr, "[DEBUG GRAFO] Coordenadas atualizadas: %s (%.4f, %.4f)\n", nome, lat, lng);
+            } else if (g->num_cidades < MAX_CIDADES) {
+                // Cidade não existe - adiciona com coordenadas
+                adicionar_cidade(g, nome);
+                idx = g->num_cidades - 1;
+                if (lat != 0.0 || lng != 0.0) {
+                    g->cidades[idx].latitude = lat;
+                    g->cidades[idx].longitude = lng;
+                    g->cidades[idx].coords_validas = 1;
+                }
+                cidades_carregadas++;
+                fprintf(stderr, "[DEBUG GRAFO] Cidade adicionada: %s (%.4f, %.4f)\n", nome, lat, lng);
+            }
         }
     }
 
     fclose(f);
-    fprintf(stderr, "[INFO COORDS] %d coordenadas carregadas de: %s\n", carregados, arquivo);
-    return carregados;
+    fprintf(stderr, "[INFO GRAFO] Carregado: %d cidades, %d conexões de: %s\n",
+            cidades_carregadas, conexoes_carregadas, arquivo);
+    return cidades_carregadas;
 }
 
