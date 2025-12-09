@@ -143,9 +143,11 @@ char* gerar_html_completo(void) {
  * Carrega a interface HTML na janela webview
  */
 void carregar_html_interface(webview_t w) {
+    // Gera HTML completo com CSS e JS inline
     char* html_completo = gerar_html_completo();
 
     if (html_completo) {
+        // Carrega HTML na webview
         fprintf(stderr, "[INFO] HTML carregado com sucesso (%zu bytes)\n", strlen(html_completo));
         webview_set_html(w, html_completo);
         free(html_completo);

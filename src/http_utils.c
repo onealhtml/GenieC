@@ -147,10 +147,13 @@ char* fazer_requisicao_http_com_retry(const char* url, const char* payload, int 
 
 // Função para codificar URL
 char* url_encode(const char* str) {
+    // Inicializa cURL
     CURL *curl = curl_easy_init();
     if (!curl) return NULL;
 
+    // Codifica string
     char *encoded = curl_easy_escape(curl, str, 0);
+    // Libera cURL
     curl_easy_cleanup(curl);
     return encoded;
 }

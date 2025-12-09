@@ -26,7 +26,7 @@ static double obter_tempo_ms() {
     return (double)(tv.tv_sec * 1000.0 + tv.tv_usec / 1000.0);
 #endif
 }
-
+//
 Grafo* criar_grafo() {
     Grafo* g = (Grafo*)malloc(sizeof(Grafo));
     if (!g) return NULL;
@@ -49,6 +49,7 @@ Grafo* criar_grafo() {
 int encontrar_cidade(Grafo* g, const char* nome) {
     if (!g || !nome) return -1;
 
+    // Busca cidade pelo nome (case-insensitive)
     for (int i = 0; i < g->num_cidades; i++) {
         if (strcasecmp(g->cidades[i].nome, nome) == 0) {
             return i;
@@ -82,9 +83,12 @@ void adicionar_cidade(Grafo* g, const char* nome) {
     g->num_cidades++;
 }
 
+// Adiciona aresta (conexão) entre duas cidades
 void adicionar_aresta(Grafo* g, const char* cidade1, const char* cidade2, int distancia) {
+    // Valida parâmetros
     if (!g || !cidade1 || !cidade2 || distancia <= 0) return;
 
+    // Busca índices das cidades
     int idx1 = encontrar_cidade(g, cidade1);
     int idx2 = encontrar_cidade(g, cidade2);
 
@@ -171,6 +175,7 @@ char* calcular_menor_caminho(Grafo* g, const char* origem, const char* destino) 
 
     time(&fim);
 
+    // Calcula tempo de execução
     long double tempo_execucao = difftime(fim,inicio);
     fprintf(stderr, "[PERFORMANCE] Dijkstra (Matriz de Adjacência) - Tempo: %.6Lf ms | Cidades: %d\n",
             tempo_execucao, g->num_cidades);
@@ -185,6 +190,7 @@ char* calcular_menor_caminho(Grafo* g, const char* origem, const char* destino) 
     int path[MAX_CIDADES];
     int path_size = 0;
 
+    // Percorre do destino até a origem
     for (int v = idx_destino; v != -1; v = anterior[v]) {
         path[path_size++] = v;
     }
@@ -193,6 +199,7 @@ char* calcular_menor_caminho(Grafo* g, const char* origem, const char* destino) 
     char caminho_visual[2048] = "";
     char detalhes_trechos[2048] = "";
 
+    // Percorre caminho de trás para frente (origem -> destino)
     for (int i = path_size - 1; i >= 0; i--) {
         strcat(caminho_visual, g->cidades[path[i]].nome);
 
@@ -962,4 +969,3 @@ int carregar_coordenadas_grafo(Grafo* g, const char* arquivo) {
             cidades_carregadas, conexoes_carregadas, arquivo);
     return cidades_carregadas;
 }
-

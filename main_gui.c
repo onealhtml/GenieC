@@ -467,32 +467,40 @@ void handle_rpc(const char *seq, const char *req, void *arg) {
         }
         webview_return(w, seq, 0, "{}");
     }
+    // Método limpar histórico
     else if (method && strcmp(method, "limpar") == 0) {
         fprintf(stderr, "[DEBUG] Limpando histórico\n");
         fflush(stderr);
 
+        // Libera histórico atual e cria novo
         liberar_historico_chat(g_historico);
         g_historico = inicializar_chat_historico();
+        // Limpa interface e mostra mensagem inicial
         webview_eval(w, "document.getElementById('chat-messages').innerHTML = '';"
                         "adicionarMensagem('GenieC', 'Olá! Sou o GenieC. Como posso ajudar?', false);");
         webview_return(w, seq, 0, "{}");
     }
     // ===== HANDLERS DO PAINEL DE GRAFOS =====
+    // Método para obter estatísticas do grafo
     else if (method && strcmp(method, "grafo_estatisticas") == 0) {
         fprintf(stderr, "[DEBUG] Obtendo estatísticas do grafo\n");
         fflush(stderr);
 
+        // Gera JSON com estatísticas
         char* stats = obter_estatisticas_grafo(g_grafo);
 
+        // Envia estatísticas para JavaScript
         char* js_code = (char*)malloc(strlen(stats) + 256);
         snprintf(js_code, strlen(stats) + 256,
             "if(typeof onEstatisticasGrafo === 'function') onEstatisticasGrafo(%s);", stats);
         webview_eval(w, js_code);
 
+        // Libera memória
         free(js_code);
         free(stats);
         webview_return(w, seq, 0, "{}");
     }
+    // Método para calcular rota do grafo
     else if (method && strcmp(method, "grafo_calcular_rota") == 0) {
         fprintf(stderr, "[DEBUG] Calculando rota via painel de grafos\n");
         fflush(stderr);
@@ -727,4 +735,3 @@ int main() {
 
     return 0;
 }
-

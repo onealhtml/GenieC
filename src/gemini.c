@@ -82,6 +82,7 @@ char* criar_payload_json_com_historico(const char* prompt, HistoricoChat* histor
 // Extrai o texto da resposta JSON
 char* extrair_texto_da_resposta(const char* resposta_json) {
     char* texto_extraido = NULL;
+    // Parse do JSON
     cJSON *root = cJSON_Parse(resposta_json);
 
     if (root == NULL) {
@@ -89,15 +90,19 @@ char* extrair_texto_da_resposta(const char* resposta_json) {
         return NULL;
     }
 
+    // Extrai array de candidatos
     cJSON *candidates = cJSON_GetObjectItemCaseSensitive(root, "candidates");
     if (cJSON_IsArray(candidates) && cJSON_GetArraySize(candidates) > 0) {
+        // Pega primeiro candidato
         cJSON *first_candidate = cJSON_GetArrayItem(candidates, 0);
         cJSON *content = cJSON_GetObjectItemCaseSensitive(first_candidate, "content");
 
         if (content) {
+            // Extrai partes do conteúdo
             cJSON *parts = cJSON_GetObjectItemCaseSensitive(content, "parts");
 
             if (cJSON_IsArray(parts) && cJSON_GetArraySize(parts) > 0) {
+                // Pega primeira parte
                 cJSON *first_part = cJSON_GetArrayItem(parts, 0);
                 cJSON *text_node = cJSON_GetObjectItemCaseSensitive(first_part, "text");
 
