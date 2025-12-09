@@ -23,7 +23,7 @@
 #include "src/env_loader.h"
 #include "src/gemini.h"
 #include "src/historico.h"
-#include "src/ui.h"
+#include "src/ui_cli.h"
 #include "src/ui_loader.h"
 #include "src/grafo.h"
 

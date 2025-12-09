@@ -1,8 +1,8 @@
-/* ui.c - Interface do usuário
+/* ui_cli.c - Interface do usuário
  * GenieC - Assistente Inteligente
  */
 
-#include "ui.h"
+#include "ui_cli.h"
 #include "clima.h"
 #include "../old/dormir.h"
 #include <stdio.h>

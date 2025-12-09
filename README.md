@@ -47,7 +47,7 @@ O código está dividido em módulos:
 - **clima.c/h** - Busca informações do OpenWeatherMap
 - **gemini.c/h** - Conversa com o Google Gemini
 - **historico.c/h** - Guarda as conversas
-- **ui.c/h** - Interface no terminal
+- **ui_cli.c/h** - Interface no terminal
 - **http_utils.c/h** - Faz as requisições HTTP
 - **env_loader.c/h** - Lê o arquivo .env
 

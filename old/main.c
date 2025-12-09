@@ -11,7 +11,7 @@
 #include <string.h>  // Biblioteca para manipulação de strings
 #include <locale.h>  // Biblioteca para configuração de localidade
 
-#include "../src/ui.h"
+#include "../src/ui_cli.h"
 #include "../src/clima.h"
 #include "../src/gemini.h"
 #include "../src/historico.h"
