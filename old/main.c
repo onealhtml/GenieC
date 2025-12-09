@@ -11,13 +11,13 @@
 #include <string.h>  // Biblioteca para manipulação de strings
 #include <locale.h>  // Biblioteca para configuração de localidade
 
-#include "src/ui.h"         // Funções de interface
-#include "src/clima.h"      // Funções de clima
-#include "src/gemini.h"     // Funções da API Gemini
-#include "src/historico.h"  // Funções de histórico
-#include "src/env_loader.h" // Carregador de variáveis de ambiente
-#include "limpar_tela.h"    // Função para limpar a tela
-#include "dormir.h"         // Função para dormir (pausar a execução)
+#include "../src/ui.h"
+#include "../src/clima.h"
+#include "../src/gemini.h"
+#include "../src/historico.h"
+#include "../src/env_loader.h"
+#include "limpar_tela.h"
+#include "../dormir.h"
 
 #define MAX_PROMPT_SIZE 10000 // Tamanho máximo do prompt
 #define MAX_CITY_NAME 100     // Tamanho máximo do nome da cidade

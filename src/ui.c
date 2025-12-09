@@ -4,7 +4,7 @@
 
 #include "ui.h"
 #include "clima.h"
-#include "../dormir.h"
+#include "../old/dormir.h"
 #include <stdio.h>
 #include <string.h>
 

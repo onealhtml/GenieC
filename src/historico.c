@@ -4,7 +4,7 @@
 
 #include "historico.h"
 #include "config.h"
-#include "../limpar_tela.h"
+#include "../old/limpar_tela.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
