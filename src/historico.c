@@ -4,7 +4,7 @@
 
 #include "historico.h"
 #include "config.h"
-#include "../limpar_tela.h"
+#include "../old/limpar_tela.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -28,7 +28,12 @@ HistoricoChat* inicializar_chat_historico() {
 void adicionar_turno(HistoricoChat* historico, const char* role, const char* text) {
     // Verifica se precisa expandir o array
     if (historico->contador >= historico->capacidade) {
-        int nova_capacidade = (historico->capacidade == 0) ? 2 : historico->capacidade * 2;
+        int nova_capacidade;
+        if (historico->capacidade == 0) {
+            nova_capacidade = 2;
+        } else {
+            nova_capacidade = historico->capacidade * 2;
+        }
 
         TurnoMensagem* novos_turnos = (TurnoMensagem*)realloc(
             historico->turno,
@@ -90,11 +95,14 @@ void exibir_historico(HistoricoChat* historico) {
         printf("\033[36m║                           📜 HISTÓRICO DA CONVERSA                            ║\033[0m\n");
         printf("\033[36m╚═══════════════════════════════════════════════════════════════════════════════╝\033[0m\n\n");
 
+        // Itera sobre todos os turnos
         for (int i = 0; i < historico->contador; i++) {
+            // Exibe mensagem do usuário
             if (strcmp(historico->turno[i].role, "user") == 0) {
                 printf("\033[1;32m👤 Você:\033[0m\n");
                 printf("   %s\n\n", historico->turno[i].text);
             } else {
+                // Exibe mensagem do assistente
                 printf("\033[1;36m🤖 GenieC:\033[0m\n");
                 printf("   %s\n\n", historico->turno[i].text);
             }

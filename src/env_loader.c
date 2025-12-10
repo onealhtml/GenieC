@@ -40,6 +40,7 @@ int carregar_env(const char* filename) {
 
 // Obtém o valor de uma variável de ambiente
 const char* obter_env(const char* key) {
+    // Valida parâmetro
     if (!key) return NULL;
 
     // Usa getenv() padrão do sistema, pois dotenv-c carrega para o ambiente
@@ -66,6 +67,7 @@ void listar_env() {
         NULL
     };
 
+    // Conta e exibe as variáveis encontradas
     int count = 0;
     for (int i = 0; keys[i] != NULL; i++) {
         const char* value = getenv(keys[i]);
