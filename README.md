@@ -7,55 +7,57 @@ O projeto integra o Google Gemini para conversas com IA e o OpenWeatherMap para 
 ## Funcionalidades
 
 - **Conversas com IA**: Usa o Google Gemini para responder perguntas e manter conversas contextualizadas
-- **Informações de Clima**: Mostra temperatura e condições climáticas com ícones animados
-- **Histórico de Conversas**: Guarda até 20 interações e permite visualizar tudo em uma tela separada
-- **Interface Colorida**: Terminal com cores e ícones para melhor experiência
+- **Interface Gráfica Moderna**: Interface web com HTML/CSS/JavaScript integrada via Webview
+- **Sistema de Grafos**: Visualização e manipulação de grafos com mapa interativo
+- **Informações de Clima**: Mostra temperatura e condições climáticas em tempo real
+- **Histórico de Conversas**: Guarda até 20 interações e permite visualizar em tela separada
 - **Sistema de Retry**: Tenta novamente automaticamente se alguma requisição falhar
 
 ## Como Usar
 
-### Comandos Disponíveis
-
-- **Digite qualquer pergunta** - O assistente responde usando o Google Gemini
-- `limpar` - Apaga o histórico e começa uma conversa nova
-- `historico` - Mostra todas as conversas anteriores
-- `help` - Exibe ajuda
-- `0` - Fecha o programa
-
-### Ícones de Clima
-
-O programa mostra ícones diferentes dependendo do clima:
-- ☀️ Céu limpo
-- 🌤️ Poucas nuvens  
-- ☁️ Nublado
-- 🌧️ Chuva
-- ⛈️ Tempestade
-- ❄️ Neve
-- 🌫️ Neblina
-
-
-## Executar
+### Executar
 
 Rode o executável `GenieC.exe`.
 
-No primeiro uso, o programa vai pedir o nome da sua cidade para buscar informações do clima.
+No primeiro uso, digite o nome da sua cidade para buscar informações do clima.
+
+### Interface Gráfica
+
+- **Chat Inteligente**: Digite perguntas e converse com a IA
+- **Painel de Clima**: Visualize temperatura e condições em tempo real
+- **Sistema de Grafos**: Crie e visualize grafos em mapa interativo
+  - Adicione nós (cidades) clicando no mapa
+  - Conecte nós com arestas
+  - Calcule menor caminho entre pontos
+- **Histórico**: Acesse conversas anteriores
+- **Limpar**: Reinicie a conversa
+
+### Ícones de Clima
+
+☀️ Céu limpo | 🌤️ Poucas nuvens | ☁️ Nublado | 🌧️ Chuva | ⛈️ Tempestade | ❄️ Neve | 🌫️ Neblina
 
 ## Estrutura do Projeto
 
 O código está dividido em módulos:
 
+- **main_gui.c** - Interface gráfica principal usando Webview
 - **clima.c/h** - Busca informações do OpenWeatherMap
 - **gemini.c/h** - Conversa com o Google Gemini
+- **grafo.c/h** - Sistema de grafos e cálculos de menor caminho
 - **historico.c/h** - Guarda as conversas
-- **ui_cli.c/h** - Interface no terminal
 - **http_utils.c/h** - Faz as requisições HTTP
 - **env_loader.c/h** - Lê o arquivo .env
+- **ui_loader.c/h** - Carrega recursos da interface
+- **ui/** - Arquivos HTML, CSS e JavaScript da interface
 
 ## Tecnologias
 
-- C puro (C99)
+- C puro (C23)
+- Webview para interface gráfica
+- HTML/CSS/JavaScript para UI
+- Leaflet.js para mapas interativos
 - cURL para requisições HTTP
-- cJSON para ler JSON
+- cJSON para manipulação do JSON
 - dotenv-c para ler variáveis de ambiente
 - APIs do Google Gemini e OpenWeatherMap
 
