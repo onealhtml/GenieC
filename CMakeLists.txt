@@ -14,7 +14,7 @@ set(SOURCES
         src/historico.c
         src/clima.c
         src/gemini.c
-        src/ui.c
+        src/ui_cli.c
         src/env_loader.c
         src/ui_loader.c
         src/grafo.c
@@ -24,7 +24,7 @@ if(WIN32)
     # Configuração para link estático no Windows
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static")
     list(APPEND SOURCES app.rc)
-    add_executable(GenieC WIN32 ${SOURCES}) # WIN32 para não mostrar a console
+    add_executable(GenieC ${SOURCES})
 
     # Define o caminho da biblioteca webview para Windows
     set(WEBVIEW_LIB "C:/msys64/home/loren/vcpkg/installed/x64-mingw-static/lib/libwebview.a")

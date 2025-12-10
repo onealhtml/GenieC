@@ -9,7 +9,7 @@
 #define MODELO_GEMINI_CHAT "gemini-2.5-flash-preview-09-2025"
 
 // Modelo para grafos e análises complexas (mais poderoso)
-#define MODELO_GEMINI_GRAFO "gemini-3-pro-preview"
+#define MODELO_GEMINI_GRAFO "gemini-2.5-pro"
 
 // Modelo padrão (compatibilidade)
 #define MODELO_GEMINI MODELO_GEMINI_CHAT
