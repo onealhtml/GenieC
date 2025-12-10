@@ -1,6 +1,6 @@
 # GenieC - Assistente Inteligente em C
 
-**GenieC** é um assistente pessoal inteligente feito em C puro, criado como projeto acadêmico da disciplina de Programação para Resolução de Problemas da UNISC. 
+**GenieC** é um assistente pessoal inteligente feito em C puro, criado como projeto acadêmico da disciplina de Programação para Resolução de Problemas, e Estrutura de Dados e Programação, da UNISC. 
 
 O projeto integra o Google Gemini para conversas com IA e o OpenWeatherMap para informações de clima em tempo real.
 
@@ -67,7 +67,7 @@ Desenvolvido por:
 - Pedro Cabral Buchaim
 
 **Universidade de Santa Cruz do Sul (UNISC)**  
-Disciplina de Programação para Resolução de Problemas
+Disciplinas: Programação para Resolução de Problemas, Estrutura de Dados e Programação
 
 ---
 
