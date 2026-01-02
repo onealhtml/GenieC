@@ -27,14 +27,18 @@
 #include "src/ui_loader.h"
 #include "src/grafo.h"
 
-// Variáveis globais para comunicação
-static HistoricoChat* g_historico = NULL;
-static char g_cidade[100] = "";
-static Grafo* g_grafo = NULL;
+// Estrutura de contexto da aplicação (substitui variáveis globais)
+typedef struct {
+    webview_t webview;
+    HistoricoChat* historico;
+    char cidade[100];
+    Grafo* grafo;
+} AppContext;
 
 // Callback quando JavaScript chama funções C
 void handle_rpc(const char *seq, const char *req, void *arg) {
-    webview_t w = (webview_t)arg;
+    AppContext* ctx = (AppContext*)arg;
+    webview_t w = ctx->webview;
 
     // DEBUG: Log para ver o que está chegando
     const char* seq_str;
@@ -154,8 +158,8 @@ void handle_rpc(const char *seq, const char *req, void *arg) {
             if (strcmp(texto, "ajuda") == 0 || strcmp(texto, "help") == 0) {
                 char ajuda[3072];
                 const char* cidade_exemplo;
-                if (g_cidade[0] != '\0') {
-                    cidade_exemplo = g_cidade;
+                if (ctx->cidade[0] != '\0') {
+                    cidade_exemplo = ctx->cidade;
                 } else {
                     cidade_exemplo = "minha cidade";
                 }
@@ -196,12 +200,12 @@ void handle_rpc(const char *seq, const char *req, void *arg) {
             if (strcmp(texto, "historico") == 0) {
                 char historico_html[8192] = "📜 <b>Histórico da Conversa:</b><br><br>";
 
-                if (g_historico && g_historico->contador > 0) {
+                if (ctx->historico && ctx->historico->contador > 0) {
                     int pos = strlen(historico_html);
-                    for (int i = 0; i < g_historico->contador && pos < 7500; i++) {
+                    for (int i = 0; i < ctx->historico->contador && pos < 7500; i++) {
                         const char* icone;
                         const char* nome;
-                        if (strcmp(g_historico->turno[i].role, "user") == 0) {
+                        if (strcmp(ctx->historico->turno[i].role, "user") == 0) {
                             icone = "👤";
                             nome = "Você";
                         } else {
@@ -211,8 +215,8 @@ void handle_rpc(const char *seq, const char *req, void *arg) {
 
                         char linha[512];
                         char msg_preview[200];
-                        size_t texto_len = strlen(g_historico->turno[i].text);
-                        strncpy(msg_preview, g_historico->turno[i].text, 150);
+                        size_t texto_len = strlen(ctx->historico->turno[i].text);
+                        strncpy(msg_preview, ctx->historico->turno[i].text, 150);
                         msg_preview[150] = '\0';
 
                         const char* ellipsis;
@@ -247,7 +251,7 @@ void handle_rpc(const char *seq, const char *req, void *arg) {
 
             // Comando para listar cidades no grafo
             if (strcmp(texto, "grafocidades") == 0) {
-                char* resultado = listar_cidades_grafo(g_grafo);
+                char* resultado = listar_cidades_grafo(ctx->grafo);
 
                 // Usa buffer maior para evitar truncamento
                 size_t js_size = strlen(resultado) + 256;
@@ -265,7 +269,7 @@ void handle_rpc(const char *seq, const char *req, void *arg) {
 
             // Comando para ver mapa do grafo
             if (strcmp(texto, "grafomapa") == 0) {
-                char* resultado = gerar_mapa_grafo(g_grafo);
+                char* resultado = gerar_mapa_grafo(ctx->grafo);
 
                 size_t js_size = strlen(resultado) + 256;
                 char* js_code = (char*)malloc(js_size);
@@ -316,7 +320,7 @@ void handle_rpc(const char *seq, const char *req, void *arg) {
                         fflush(stderr);
 
                         // Consulta a IA para preencher o grafo
-                        int conexoes = obter_distancias_ia_e_preencher_grafo(origem, destino, g_grafo);
+                        int conexoes = obter_distancias_ia_e_preencher_grafo(origem, destino, ctx->grafo);
 
                         if (conexoes > 0) {
                             char msg_sucesso[768];
@@ -325,7 +329,7 @@ void handle_rpc(const char *seq, const char *req, void *arg) {
                                 "🏙️ <b>%d cidades</b> mapeadas<br>"
                                 "🛣️ <b>%d conexões</b> adicionadas pela IA<br>"
                                 "🔍 Buscando coordenadas e calculando menor caminho com Dijkstra...<br><br>",
-                                g_grafo->num_cidades, conexoes);
+                                ctx->grafo->num_cidades, conexoes);
 
                             char* js_code = (char*)malloc(2048);
                             snprintf(js_code, 2048,
@@ -334,10 +338,10 @@ void handle_rpc(const char *seq, const char *req, void *arg) {
                             free(js_code);
 
                             // Salva o grafo atualizado com coordenadas E conexões
-                            salvar_coordenadas_grafo(g_grafo, "coordenadas_grafo.txt");
+                            salvar_coordenadas_grafo(ctx->grafo, "coordenadas_grafo.txt");
 
                             // Calcula o menor caminho usando Dijkstra COM MAPA
-                            char* resultado = calcular_menor_caminho_com_mapa(g_grafo, origem, destino);
+                            char* resultado = calcular_menor_caminho_com_mapa(ctx->grafo, origem, destino);
 
                             // Usa buffer dinâmico para suportar o HTML do mapa
                             size_t resultado_size = strlen(resultado) + 256;
@@ -350,7 +354,7 @@ void handle_rpc(const char *seq, const char *req, void *arg) {
                             free(resultado);
 
                             // Atualiza estatísticas no painel (se estiver aberto)
-                            char* stats = obter_estatisticas_grafo(g_grafo);
+                            char* stats = obter_estatisticas_grafo(ctx->grafo);
                             js_code = (char*)malloc(strlen(stats) + 256);
                             snprintf(js_code, strlen(stats) + 256,
                                 "if(typeof onEstatisticasGrafo === 'function') onEstatisticasGrafo(%s);", stats);
@@ -378,19 +382,19 @@ void handle_rpc(const char *seq, const char *req, void *arg) {
             }
 
             // Adiciona ao histórico
-            adicionar_turno(g_historico, "user", texto);
+            adicionar_turno(ctx->historico, "user", texto);
 
-            fprintf(stderr, "[DEBUG] Consultando Gemini com cidade: %s\n", g_cidade);
+            fprintf(stderr, "[DEBUG] Consultando Gemini com cidade: %s\n", ctx->cidade);
             fflush(stderr);
 
             // Consulta o Gemini
-            char* resposta = consultar_gemini(texto, g_historico, g_cidade);
+            char* resposta = consultar_gemini(texto, ctx->historico, ctx->cidade);
 
             if (resposta) {
                 fprintf(stderr, "[DEBUG] Resposta recebida: %.100s...\n", resposta);
                 fflush(stderr);
 
-                adicionar_turno(g_historico, "model", resposta);
+                adicionar_turno(ctx->historico, "model", resposta);
 
                 // Escapa a resposta usando cJSON
                 cJSON *tmp = cJSON_CreateString(resposta);
@@ -428,10 +432,10 @@ void handle_rpc(const char *seq, const char *req, void *arg) {
 
             if (clima.valid) {
                 // Usa o nome da cidade retornado pela API (padronizado)
-                strncpy(g_cidade, clima.cidade, sizeof(g_cidade) - 1);
-                g_cidade[sizeof(g_cidade) - 1] = '\0';
+                strncpy(ctx->cidade, clima.cidade, sizeof(ctx->cidade) - 1);
+                ctx->cidade[sizeof(ctx->cidade) - 1] = '\0';
 
-                fprintf(stderr, "[DEBUG] Cidade global atualizada para: %s (da API)\n", g_cidade);
+                fprintf(stderr, "[DEBUG] Cidade global atualizada para: %s (da API)\n", ctx->cidade);
                 fflush(stderr);
 
                 const char* icone = obter_icone_clima(clima.description);
@@ -473,8 +477,8 @@ void handle_rpc(const char *seq, const char *req, void *arg) {
         fflush(stderr);
 
         // Libera histórico atual e cria novo
-        liberar_historico_chat(g_historico);
-        g_historico = inicializar_chat_historico();
+        liberar_historico_chat(ctx->historico);
+        ctx->historico = inicializar_chat_historico();
         // Limpa interface e mostra mensagem inicial
         webview_eval(w, "document.getElementById('chat-messages').innerHTML = '';"
                         "adicionarMensagem('GenieC', 'Olá! Sou o GenieC. Como posso ajudar?', false);");
@@ -487,7 +491,7 @@ void handle_rpc(const char *seq, const char *req, void *arg) {
         fflush(stderr);
 
         // Gera JSON com estatísticas
-        char* stats = obter_estatisticas_grafo(g_grafo);
+        char* stats = obter_estatisticas_grafo(ctx->grafo);
 
         // Envia estatísticas para JavaScript
         char* js_code = (char*)malloc(strlen(stats) + 256);
@@ -525,7 +529,7 @@ void handle_rpc(const char *seq, const char *req, void *arg) {
                 "⏳ Isso pode levar alguns minutos...', false);");
 
             // Consulta a IA para preencher o grafo
-            int conexoes = obter_distancias_ia_e_preencher_grafo(origem, destino, g_grafo);
+            int conexoes = obter_distancias_ia_e_preencher_grafo(origem, destino, ctx->grafo);
 
             if (conexoes > 0) {
                 char msg_sucesso[768];
@@ -534,7 +538,7 @@ void handle_rpc(const char *seq, const char *req, void *arg) {
                     "🏙️ <b>%d cidades</b> mapeadas<br>"
                     "🛣️ <b>%d conexões</b> adicionadas pela IA<br>"
                     "🔍 Calculando menor caminho com Dijkstra...<br><br>",
-                    g_grafo->num_cidades, conexoes);
+                    ctx->grafo->num_cidades, conexoes);
 
                 char* js_code = (char*)malloc(2048);
                 snprintf(js_code, 2048,
@@ -543,10 +547,10 @@ void handle_rpc(const char *seq, const char *req, void *arg) {
                 free(js_code);
 
                 // Salva o grafo atualizado
-                salvar_coordenadas_grafo(g_grafo, "coordenadas_grafo.txt");
+                salvar_coordenadas_grafo(ctx->grafo, "coordenadas_grafo.txt");
 
                 // Calcula o menor caminho usando Dijkstra COM MAPA
-                char* resultado = calcular_menor_caminho_com_mapa(g_grafo, origem, destino);
+                char* resultado = calcular_menor_caminho_com_mapa(ctx->grafo, origem, destino);
 
                 size_t resultado_size = strlen(resultado) + 256;
                 js_code = (char*)malloc(resultado_size);
@@ -558,7 +562,7 @@ void handle_rpc(const char *seq, const char *req, void *arg) {
                 free(resultado);
 
                 // Atualiza estatísticas no painel (se estiver aberto)
-                char* stats = obter_estatisticas_grafo(g_grafo);
+                char* stats = obter_estatisticas_grafo(ctx->grafo);
                 js_code = (char*)malloc(strlen(stats) + 256);
                 snprintf(js_code, strlen(stats) + 256,
                     "if(typeof onEstatisticasGrafo === 'function') onEstatisticasGrafo(%s);", stats);
@@ -581,7 +585,7 @@ void handle_rpc(const char *seq, const char *req, void *arg) {
         fprintf(stderr, "[DEBUG] Visualizando mapa do grafo via painel\n");
         fflush(stderr);
 
-        char* resultado = gerar_mapa_grafo(g_grafo);
+        char* resultado = gerar_mapa_grafo(ctx->grafo);
 
         size_t js_size = strlen(resultado) + 256;
         char* js_code = (char*)malloc(js_size);
@@ -597,7 +601,7 @@ void handle_rpc(const char *seq, const char *req, void *arg) {
         fprintf(stderr, "[DEBUG] Listando cidades do grafo via painel\n");
         fflush(stderr);
 
-        char* resultado = listar_cidades_grafo(g_grafo);
+        char* resultado = listar_cidades_grafo(ctx->grafo);
 
         size_t js_size = strlen(resultado) + 256;
         char* js_code = (char*)malloc(js_size);
@@ -613,7 +617,7 @@ void handle_rpc(const char *seq, const char *req, void *arg) {
         fprintf(stderr, "[DEBUG] Limpando grafo via painel\n");
         fflush(stderr);
 
-        limpar_grafo(g_grafo);
+        limpar_grafo(ctx->grafo);
 
         // Remove o arquivo de coordenadas também
         remove("coordenadas_grafo.txt");
@@ -627,7 +631,7 @@ void handle_rpc(const char *seq, const char *req, void *arg) {
         fprintf(stderr, "[DEBUG] Salvando grafo via painel\n");
         fflush(stderr);
 
-        int salvos = salvar_coordenadas_grafo(g_grafo, "coordenadas_grafo.txt");
+        int salvos = salvar_coordenadas_grafo(ctx->grafo, "coordenadas_grafo.txt");
 
         char msg[256];
         snprintf(msg, sizeof(msg),
@@ -662,28 +666,30 @@ int main() {
         return 1;
     }
 
-    // Inicializa histórico
-    g_historico = inicializar_chat_historico();
-    g_cidade[0] = '\0'; // Inicia sem cidade - usuário vai definir na tela de boas-vindas
+    // Inicializa o contexto da aplicação (substitui variáveis globais)
+    AppContext ctx = {0};
+    ctx.historico = inicializar_chat_historico();
+    ctx.cidade[0] = '\0'; // Inicia sem cidade - usuário vai definir na tela de boas-vindas
 
     // Inicializa o grafo
-    g_grafo = criar_grafo();
-    if (!g_grafo) {
+    ctx.grafo = criar_grafo();
+    if (!ctx.grafo) {
         fprintf(stderr, "Erro ao criar grafo\n");
-        liberar_historico_chat(g_historico);
+        liberar_historico_chat(ctx.historico);
         limpar_env();
         return 1;
     }
 
     // Carrega coordenadas salvas anteriormente (se existir)
     // IMPORTANTE: Isso carrega as coordenadas das cidades que já foram usadas antes
-    int coords_carregadas = carregar_coordenadas_grafo(g_grafo, "coordenadas_grafo.txt");
+    int coords_carregadas = carregar_coordenadas_grafo(ctx.grafo, "coordenadas_grafo.txt");
     if (coords_carregadas > 0) {
         fprintf(stderr, "[INFO] %d coordenadas carregadas do cache ao iniciar\n", coords_carregadas);
     }
 
     // Cria a janela
     webview_t w = webview_create(0, NULL);
+    ctx.webview = w;
     webview_set_title(w, "GenieC - Assistente Inteligente");
     webview_set_size(w, 1000, 700, WEBVIEW_HINT_NONE);
 
@@ -702,9 +708,10 @@ int main() {
 #endif
 
     // **IMPORTANTE**: Registra callback ANTES de carregar o HTML
+    // Passa o contexto da aplicação ao invés de apenas a webview
     fprintf(stderr, "[INFO] Registrando callback RPC...\n");
     fflush(stderr);
-    webview_bind(w, "rpc", handle_rpc, w);
+    webview_bind(w, "rpc", handle_rpc, &ctx);
 
     // Carrega e define o HTML da interface
     fprintf(stderr, "[INFO] Carregando HTML da interface...\n");
@@ -729,8 +736,8 @@ int main() {
 
     // Cleanup
     webview_destroy(w);
-    liberar_historico_chat(g_historico);
-    liberar_grafo(g_grafo);
+    liberar_historico_chat(ctx.historico);
+    liberar_grafo(ctx.grafo);
     limpar_env();
 
     return 0;
